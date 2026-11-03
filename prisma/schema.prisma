@@ -1,0 +1,392 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ------------------------------------------------------
+// ENUMS
+// ------------------------------------------------------
+
+enum Role {
+  USER
+  CREATOR
+  MODERATOR
+  ADMIN
+}
+
+enum BadgeType {
+  NONE
+  BLUE_VERIFIED
+  FIRE_CREATOR
+  LEGENDARY
+}
+
+enum AspectRatio {
+  RATIO_16_9
+  RATIO_9_16
+  RATIO_1_1
+  RATIO_4_5
+}
+
+enum PhotoStatus {
+  PENDING_MODERATION
+  APPROVED
+  REJECTED
+  FLAGGED
+}
+
+enum ResolutionTier {
+  RES_720P  // Free download
+  RES_1080P // HD Premium (1 Ad step or 10 pts)
+  RES_2K    // Ultra HD (2 Ad steps or 25 pts)
+}
+
+enum ContestTier {
+  HOURLY_24
+  WEEKLY_7D
+  MONTHLY_30D
+}
+
+enum ContestStatus {
+  UPCOMING
+  ACTIVE
+  CALCULATING
+  COMPLETED
+}
+
+enum PaymentMethod {
+  BKASH
+  NAGAD
+  ROCKET
+  STRIPE
+  PAYPAL
+  SKRILL
+}
+
+enum TransactionType {
+  DEPOSIT
+  PHOTO_PURCHASE
+  CONTEST_PRIZE
+  WITHDRAWAL
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REJECTED
+}
+
+enum PointReason {
+  SIGNUP_BONUS
+  DAILY_CHECKIN
+  PHOTO_UPLOAD
+  VOTE_CAST
+  REFERRAL_BONUS
+  AD_WATCH
+  UNLOCK_1080P_SPENT
+  UNLOCK_2K_SPENT
+  VOTE_BYPASS_SPENT
+}
+
+// ------------------------------------------------------
+// USER & CREATOR PROFILE
+// ------------------------------------------------------
+
+model User {
+  id                String             @id @default(cuid())
+  email             String             @unique
+  password          String?
+  name              String?
+  phone             String?            // Mobile number for bKash / Nagad
+  bio               String?            // Short photographer bio
+  emailVerified     DateTime?
+  image             String?
+  avatarUrl         String?
+  location          String?            @default("Bangladesh")
+  role              Role               @default(USER)
+  badge             BadgeType          @default(NONE)
+
+  // Wallet
+  walletBalance     Decimal            @default(0.00) @db.Decimal(12, 2)
+  pendingPayout     Decimal            @default(0.00) @db.Decimal(12, 2)
+  lifetimeEarned    Decimal            @default(0.00) @db.Decimal(12, 2)
+
+  // Points & Retention
+  pointsBalance     Int                @default(50)
+  lastDailyCheckin  DateTime?
+  lastVoteDate      DateTime?
+  dailyVotesCount   Int                @default(0)
+
+  // Referral
+  referralCode      String             @unique @default(cuid())
+  referredById      String?
+  referredBy        User?              @relation("Referrals", fields: [referredById], references: [id])
+  referrals         User[]             @relation("Referrals")
+
+  // Auth.js Relations
+  accounts          Account[]
+  sessions          Session[]
+
+  // App Relations
+  photos            Photo[]
+  votesCast         Vote[]
+  contestEntries    ContestEntry[]
+  transactions      Transaction[]
+  payoutAccounts    PayoutAccount[]
+  pointTransactions PointTransaction[]
+  unlockedPhotos    UnlockedPhoto[]
+
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@index([email])
+
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ------------------------------------------------------
+// PHOTO MANAGEMENT & AI ATTRIBUTES
+// ------------------------------------------------------
+
+model Photo {
+  id              String          @id @default(cuid())
+  userId          String
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title           String
+  description     String?
+  category        String          @default("Nature")
+  aspectRatio     AspectRatio     @default(RATIO_16_9)
+  isFree          Boolean         @default(true)
+  status          PhotoStatus     @default(PENDING_MODERATION)
+
+  // AI & Safety Metadata
+  isAiGenerated   Boolean         @default(false)
+  aiModelUsed     String?
+  nsfwScore       Float           @default(0.0)
+  moderationNotes String?
+
+  // Engagement Metrics
+  viewCount       Int             @default(0)
+  downloadCount   Int             @default(0)
+  voteCount       Int             @default(0)
+
+  variants        PhotoVariant[]
+  contestEntries  ContestEntry[]
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([status, createdAt])
+  @@index([userId])
+  @@index([isAiGenerated])
+  @@index([category])
+}
+
+model PhotoVariant {
+  id              String          @id @default(cuid())
+  photoId         String
+  photo           Photo           @relation(fields: [photoId], references: [id], onDelete: Cascade)
+
+  tier            ResolutionTier
+  storageKey      String
+  fileSizeKb      Int
+  width           Int
+  height          Int
+  isWatermarked   Boolean         @default(false)
+  price           Decimal         @default(0.00) @db.Decimal(8, 2)
+
+  createdAt       DateTime        @default(now())
+
+  @@unique([photoId, tier])
+}
+
+model UnlockedPhoto {
+  id          String         @id @default(cuid())
+  userId      String?
+  user        User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photoId     String
+  tier        ResolutionTier
+  clientIp    String
+  expiresAt   DateTime
+
+  createdAt   DateTime       @default(now())
+
+  @@index([photoId, clientIp])
+  @@index([userId, photoId])
+}
+// ------------------------------------------------------
+// CONTESTS & VOTING ENGINE
+// ------------------------------------------------------
+
+model Contest {
+  id              String          @id @default(cuid())
+  title           String
+  tier            ContestTier     @default(HOURLY_24)
+  prizePool       Decimal         @db.Decimal(10, 2)
+  startTime       DateTime
+  endTime         DateTime
+  status          ContestStatus   @default(UPCOMING)
+  allowAi         Boolean         @default(true)
+
+  entries         ContestEntry[]
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([status, endTime])
+}
+
+model ContestEntry {
+  id              String          @id @default(cuid())
+  contestId       String
+  contest         Contest         @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  photoId         String
+  photo           Photo           @relation(fields: [photoId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  votesReceived   Int             @default(0)
+  isWinner        Boolean         @default(false)
+  rankPosition    Int?
+
+  votes           Vote[]
+
+  createdAt       DateTime        @default(now())
+
+  @@unique([contestId, photoId])
+  @@index([contestId, votesReceived])
+}
+
+model Vote {
+  id              String          @id @default(cuid())
+  entryId         String
+  entry           ContestEntry    @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  userId          String?
+  user            User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  ipAddress       String
+  fingerprint     String
+
+  createdAt       DateTime        @default(now())
+
+  @@unique([entryId, ipAddress, fingerprint])
+  @@index([entryId])
+}
+
+// ------------------------------------------------------
+// PAYOUTS & WALLET LEDGER
+// ------------------------------------------------------
+
+model PayoutAccount {
+  id              String          @id @default(cuid())
+  userId          String
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  gateway         PaymentMethod
+  accountDetails  String
+  isDefault       Boolean         @default(false)
+
+  createdAt       DateTime        @default(now())
+
+  @@index([userId])
+}
+
+model Transaction {
+  id              String            @id @default(cuid())
+  userId          String
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type            TransactionType
+  amount          Decimal           @db.Decimal(12, 2)
+  gateway         PaymentMethod
+  status          TransactionStatus @default(PENDING)
+  referenceId     String?
+  adminNote       String?
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([userId, status])
+}
+
+model PointTransaction {
+  id          String      @id @default(cuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount      Int
+  reason      PointReason
+  description String?
+
+  createdAt   DateTime    @default(now())
+
+  @@index([userId, createdAt])
+}
+
+// ------------------------------------------------------
+// SIDEBAR ANNOUNCEMENTS & ADS CONFIG
+// ------------------------------------------------------
+
+model Announcement {
+  id              String          @id @default(cuid())
+  title           String
+  content         String
+  badgeTag        String?
+  linkUrl         String?
+  isActive        Boolean         @default(true)
+  priority        Int             @default(0)
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([isActive, priority])
+}
+
+model AdPlacement {
+  id              String          @id @default(cuid())
+  slotName        String          @unique
+  provider        String          @default("Adsterra")
+  scriptCode      String          @db.Text
+  isActive        Boolean         @default(true)
+
+  updatedAt       DateTime        @updatedAt
+}
