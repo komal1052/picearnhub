@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Trophy,
   Flame,
@@ -22,7 +22,8 @@ import {
   MapPin,
   Camera,
   Maximize2,
-  Share2
+  Image as ImageIcon,
+  Check
 } from "lucide-react";
 import SocialBar from "./SocialBar";
 
@@ -41,6 +42,11 @@ export default function HomeExperience({
   const [activeFilter, setActiveFilter] = useState<"ALL" | "16:9" | "9:16" | "FREE" | "AI">("ALL");
   const [photoList, setPhotoList] = useState(initialPhotos);
   const [mounted, setMounted] = useState(false);
+
+  // সাইডবার ট্যাব: নোটিশ বনাম পেমেন্ট প্রুফ
+  const [sidebarTab, setSidebarTab] = useState<"NOTICES" | "PROOFS">("NOTICES");
+  const [proofs, setProofs] = useState<any[]>([]);
+  const [viewingProof, setViewingProof] = useState<any | null>(null);
 
   // Full Screen Preview Modal State
   const [previewPhoto, setPreviewPhoto] = useState<any | null>(null);
@@ -62,6 +68,7 @@ export default function HomeExperience({
   const [profileLocation, setProfileLocation] = useState("");
   const [profileAvatar, setProfileAvatar] = useState("");
   const [profileLoading, setProfileLoading] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   // Voting Modal States
   const [votingPhoto, setVotingPhoto] = useState<any | null>(null);
@@ -78,6 +85,13 @@ export default function HomeExperience({
 
   useEffect(() => {
     setMounted(true);
+    // পেমেন্ট প্রুফগুলো লোড করা
+    fetch("/api/admin/proofs")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.proofs) setProofs(data.proofs);
+      })
+      .catch(() => {});
   }, []);
 
   const triggerAdsterraDirectLink = () => {
@@ -191,6 +205,35 @@ export default function HomeExperience({
     setIsProfileModalOpen(true);
   };
 
+  // ফ্রেম থেকে ছবি সিলেক্ট করলে স্বয়ংক্রিয়ভাবে 150x150 কম্প্রেস করে ফ্রেমে বসানো
+  const handleAvatarFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const size = 150; // প্রোফাইল অবতার সাইজ
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d");
+
+        // স্কয়ার করে সেন্টারে ক্রপ
+        const minSide = Math.min(img.width, img.height);
+        const sx = (img.width - minSide) / 2;
+        const sy = (img.height - minSide) / 2;
+
+        ctx?.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
+        const compressedBase64 = canvas.toDataURL("image/jpeg", 0.75); // মাত্র ~8KB সাইজ
+        setProfileAvatar(compressedBase64);
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setProfileLoading(true);
@@ -213,7 +256,7 @@ export default function HomeExperience({
       if (res.ok) {
         setCurrentUser(data.user);
         setIsProfileModalOpen(false);
-        alert("Profile details updated successfully! ✅");
+        alert("প্রোফাইল সফলভাবে আপডেট করা হয়েছে! ✅");
       } else {
         alert(data.error);
       }
@@ -247,14 +290,12 @@ export default function HomeExperience({
       {/* 0. TOP NAVBAR WITH LOGO & USER PROFILE               */}
       {/* ==================================================== */}
       <header className="flex justify-between items-center border-b border-zinc-800 pb-4">
-        {/* Brand Logo (Supports custom logo.png with vector fallback) */}
         <div className="flex items-center gap-3">
           <div className="relative w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 text-black flex items-center justify-center font-black shadow-lg shadow-amber-500/20 overflow-hidden">
             <img
               src="/logo.png"
               alt="PicEarnHub Logo"
               onError={(e) => {
-                // If logo.png doesn't exist, hide image and show Camera icon
                 e.currentTarget.style.display = "none";
               }}
               className="w-full h-full object-cover"
@@ -284,7 +325,7 @@ export default function HomeExperience({
                   <img
                     src={currentUser.avatarUrl}
                     alt={currentUser.name}
-                    className="w-5 h-5 rounded-full object-cover border border-amber-400"
+                    className="w-6 h-6 rounded-full object-cover border border-amber-400"
                   />
                 ) : (
                   <UserIcon className="w-4 h-4 text-zinc-400" />
@@ -294,7 +335,7 @@ export default function HomeExperience({
                 <button
                   onClick={handleOpenEditProfile}
                   className="p-1 rounded-md text-zinc-400 hover:text-amber-400 hover:bg-zinc-800 transition-colors"
-                  title="Edit Profile Data"
+                  title="Edit Profile"
                 >
                   <Edit3 className="w-3.5 h-3.5" />
                 </button>
@@ -320,9 +361,10 @@ export default function HomeExperience({
       </header>
 
       {/* ==================================================== */}
-      {/* 1. HERO SECTION: WINNER SPOTLIGHT & BULLETIN         */}
+      {/* 1. HERO SECTION: WINNER & LIVE NOTICE/PROOFS         */}
       {/* ==================================================== */}
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        {/* Left (8 Cols): Grand Champion Winner Slider */}
         <div
           onClick={() => {
             const winner = photoList.find((p) => p.title.includes("Tiger"));
@@ -382,33 +424,90 @@ export default function HomeExperience({
           </div>
         </div>
 
+        {/* Right (4 Cols): সাইডবার (বুলেটিন ও উইথড্র প্রুফ ট্যাব) */}
         <div className="lg:col-span-4 rounded-3xl bg-zinc-950 border border-zinc-800 p-5 flex flex-col justify-between shadow-2xl space-y-4">
           <div className="space-y-3">
-            <div className="flex justify-between items-center border-b border-zinc-800 pb-3">
-              <div className="flex items-center gap-2 text-white font-bold text-sm">
-                <Megaphone className="w-4 h-4 text-amber-400 animate-pulse" />
-                <span>Bulletin & Live Notices</span>
+            {/* সাইডবার সুইচ ট্যাব: নোটিশ বনাম পেমেন্ট প্রুফ */}
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSidebarTab("NOTICES")}
+                  className={`text-xs font-bold pb-1 transition-colors ${
+                    sidebarTab === "NOTICES"
+                      ? "text-amber-400 border-b-2 border-amber-400"
+                      : "text-zinc-500 hover:text-zinc-300"
+                  }`}
+                >
+                  📢 বুলেটিন (Notices)
+                </button>
+                <button
+                  onClick={() => setSidebarTab("PROOFS")}
+                  className={`text-xs font-bold pb-1 transition-colors flex items-center gap-1 ${
+                    sidebarTab === "PROOFS"
+                      ? "text-emerald-400 border-b-2 border-emerald-400"
+                      : "text-zinc-500 hover:text-zinc-300"
+                  }`}
+                >
+                  <span>💸 পেমেন্ট প্রুফ</span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                </button>
               </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-zinc-900 text-amber-400 border border-zinc-800">
+              <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-zinc-900 text-zinc-400 border border-zinc-800">
                 LIVE
               </span>
             </div>
 
-            <div className="space-y-3 divide-y divide-zinc-900">
-              {announcements.map((a) => (
-                <div key={a.id} className="pt-2 space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-amber-400/10 text-amber-400 border border-amber-400/20">
-                      {a.badgeTag}
-                    </span>
-                    <span className="text-[11px] text-zinc-500">Notice</span>
+            {/* TAB A: নোটিশ বোর্ড */}
+            {sidebarTab === "NOTICES" ? (
+              <div className="space-y-2.5 divide-y divide-zinc-900">
+                {announcements.map((a) => (
+                  <div key={a.id} className="pt-2 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-amber-400/10 text-amber-400 border border-amber-400/20">
+                        {a.badgeTag}
+                      </span>
+                      <span className="text-[11px] text-zinc-500">Notice</span>
+                    </div>
+                    <h4 className="text-xs font-semibold text-zinc-200 leading-snug">{a.title}</h4>
                   </div>
-                  <h4 className="text-xs font-semibold text-zinc-200 leading-snug">{a.title}</h4>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              /* TAB B: লাইভ উইথড্র ও পেমেন্ট প্রুফ গ্যালারি */
+              <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1 scrollbar-none">
+                {proofs.length === 0 ? (
+                  <div className="text-center py-6 text-zinc-500 text-xs">
+                    এখনো কোনো প্রুফ আপলোড করা হয়নি।
+                  </div>
+                ) : (
+                  proofs.map((proof) => (
+                    <div
+                      key={proof.id}
+                      onClick={() => setViewingProof(proof)}
+                      className="p-2.5 rounded-xl bg-zinc-900/60 border border-zinc-800 hover:border-emerald-500/40 transition-colors cursor-pointer flex items-center justify-between gap-3 group"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <img
+                          src={proof.proofImage}
+                          alt="bKash Proof"
+                          className="w-11 h-11 rounded-lg object-cover border border-zinc-700 group-hover:scale-105 transition-transform"
+                        />
+                        <div>
+                          <div className="text-xs font-bold text-white">{proof.userName}</div>
+                          <div className="text-[10px] text-zinc-400">
+                            {proof.gateway} &bull; {new Date(proof.createdAt).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-emerald-400 font-bold text-xs font-mono">{proof.amount}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
 
+          {/* Adsterra 300x250 Sponsored Slot */}
           <div
             onClick={triggerAdsterraDirectLink}
             className="p-3 rounded-2xl bg-zinc-900/40 border border-zinc-800/80 text-center space-y-1 cursor-pointer hover:border-amber-400/40 transition-colors"
@@ -417,7 +516,7 @@ export default function HomeExperience({
               <span>Sponsored Offer</span>
               <ExternalLink className="w-3 h-3 text-amber-400" />
             </div>
-            <div className="h-32 bg-zinc-900 rounded-xl flex items-center justify-center text-xs text-zinc-500 font-bold border border-dashed border-zinc-800">
+            <div className="h-28 bg-zinc-900 rounded-xl flex items-center justify-center text-xs text-zinc-500 font-bold border border-dashed border-zinc-800">
               [Click to View Sponsor &bull; 300x250]
             </div>
           </div>
@@ -489,7 +588,6 @@ export default function HomeExperience({
               key={photo.id}
               className="group rounded-2xl overflow-hidden bg-zinc-950 border border-zinc-800/80 hover:border-zinc-700 transition-all duration-300 flex flex-col justify-between shadow-xl"
             >
-              {/* Image Container: Clicking opens Full Image Lightbox */}
               <div
                 onClick={() => setPreviewPhoto(photo)}
                 className="relative cursor-pointer"
@@ -529,7 +627,6 @@ export default function HomeExperience({
                 </div>
               </div>
 
-              {/* Photo Meta & Actions */}
               <div className="p-3.5 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="max-w-[170px]">
@@ -575,7 +672,7 @@ export default function HomeExperience({
       </section>
 
       {/* ==================================================== */}
-      {/* 5. CINEMATIC FULLSCREEN PICTURE PREVIEW (LIGHTBOX)   */}
+      {/* 5. CINEMATIC FULLSCREEN LIGHTBOX MODAL               */}
       {/* ==================================================== */}
       {previewPhoto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-2xl p-4 md:p-8 animate-in fade-in duration-200">
@@ -587,7 +684,6 @@ export default function HomeExperience({
           </button>
 
           <div className="max-w-6xl w-full max-h-[92vh] flex flex-col lg:flex-row items-center gap-6 overflow-hidden rounded-3xl bg-zinc-950 border border-zinc-800 shadow-2xl">
-            {/* Main Picture Display (Full Aspect View) */}
             <div className="relative w-full lg:w-2/3 h-[50vh] lg:h-[80vh] bg-black flex items-center justify-center p-2">
               <img
                 src={getPhotoUrl(previewPhoto)}
@@ -596,7 +692,6 @@ export default function HomeExperience({
               />
             </div>
 
-            {/* Photo Details & Controls Sidebar */}
             <div className="w-full lg:w-1/3 p-6 space-y-6 flex flex-col justify-between overflow-y-auto">
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
@@ -615,7 +710,6 @@ export default function HomeExperience({
 
                 <h2 className="text-xl md:text-2xl font-black text-white">{previewPhoto.title}</h2>
 
-                {/* Creator Profile */}
                 <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-zinc-900/60 border border-zinc-800">
                   <img
                     src={previewPhoto.user.avatarUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150"}
@@ -632,7 +726,6 @@ export default function HomeExperience({
                   </div>
                 </div>
 
-                {/* Stats */}
                 <div className="grid grid-cols-2 gap-3 text-center">
                   <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800">
                     <span className="text-[10px] text-zinc-500 uppercase font-semibold">Total Votes</span>
@@ -648,12 +741,9 @@ export default function HomeExperience({
                 </div>
               </div>
 
-              {/* Action Buttons */}
               <div className="space-y-2.5 pt-4 border-t border-zinc-900">
                 <button
-                  onClick={() => {
-                    setVotingPhoto(previewPhoto);
-                  }}
+                  onClick={() => setVotingPhoto(previewPhoto)}
                   disabled={previewPhoto.hasVoted}
                   className={`w-full py-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-transform active:scale-95 ${
                     previewPhoto.hasVoted
@@ -666,9 +756,7 @@ export default function HomeExperience({
                 </button>
 
                 <button
-                  onClick={() => {
-                    setDownloadPhoto(previewPhoto);
-                  }}
+                  onClick={() => setDownloadPhoto(previewPhoto)}
                   className="w-full py-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-xs flex items-center justify-center gap-2 border border-zinc-800 transition-colors"
                 >
                   <Download className="w-4 h-4" />
@@ -681,7 +769,7 @@ export default function HomeExperience({
       )}
 
       {/* ==================================================== */}
-      {/* 6. EDIT USER PROFILE MODAL                           */}
+      {/* 6. EDIT USER PROFILE MODAL (WITH AVATAR UPLOAD FRAME)*/}
       {/* ==================================================== */}
       {isProfileModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
@@ -696,7 +784,41 @@ export default function HomeExperience({
               </button>
             </div>
 
-            <form onSubmit={handleProfileUpdate} className="space-y-3">
+            <form onSubmit={handleProfileUpdate} className="space-y-4">
+              {/* গোল প্রোফাইল পিকচার ফ্রেম (ক্লিক করলেই ছবি আপলোড) */}
+              <div className="flex flex-col items-center justify-center space-y-2">
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={avatarInputRef}
+                  onChange={handleAvatarFileSelect}
+                  className="hidden"
+                />
+                <div
+                  onClick={() => avatarInputRef.current?.click()}
+                  className="relative w-20 h-20 rounded-full border-2 border-dashed border-amber-400 hover:border-amber-300 p-0.5 cursor-pointer group overflow-hidden bg-zinc-900 flex items-center justify-center shadow-lg shadow-amber-400/10"
+                >
+                  {profileAvatar ? (
+                    <img
+                      src={profileAvatar}
+                      alt="Avatar Preview"
+                      className="w-full h-full rounded-full object-cover group-hover:opacity-75 transition-opacity"
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center text-zinc-500 group-hover:text-amber-400 transition-colors">
+                      <Camera className="w-6 h-6 mb-0.5" />
+                      <span className="text-[9px] font-bold">ছবি দিন</span>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-full text-white">
+                    <Camera className="w-5 h-5" />
+                  </div>
+                </div>
+                <span className="text-[10px] text-zinc-400">
+                  {profileAvatar ? "✅ ছবি সিলেক্ট হয়েছে (পরিবর্তন করতে ক্লিক করুন)" : "ফ্রেমে ক্লিক করে আপনার ছবি সিলেক্ট করুন"}
+                </span>
+              </div>
+
               <div>
                 <label className="text-[11px] font-semibold text-zinc-400 block mb-1">পূর্ণ নাম (Full Name)</label>
                 <input
@@ -737,20 +859,6 @@ export default function HomeExperience({
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-zinc-400 block mb-1 flex items-center gap-1">
-                  <Camera className="w-3 h-3 text-amber-400" />
-                  <span>প্রোফাইল ছবির লিংক (Profile Picture URL)</span>
-                </label>
-                <input
-                  type="url"
-                  placeholder="https://images.unsplash.com/..."
-                  value={profileAvatar}
-                  onChange={(e) => setProfileAvatar(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
-                />
-              </div>
-
-              <div>
                 <label className="text-[11px] font-semibold text-zinc-400 block mb-1">ছোট বিবরণ / বায়ো (Short Bio)</label>
                 <textarea
                   rows={2}
@@ -764,7 +872,7 @@ export default function HomeExperience({
               <button
                 type="submit"
                 disabled={profileLoading}
-                className="w-full py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 disabled:opacity-50 text-black font-black text-xs transition-transform active:scale-95"
+                className="w-full py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 disabled:opacity-50 text-black font-black text-xs transition-transform active:scale-95 shadow-md shadow-amber-400/20"
               >
                 {profileLoading ? "Updating..." : "Save Profile (সংরক্ষণ করুন)"}
               </button>
@@ -774,7 +882,35 @@ export default function HomeExperience({
       )}
 
       {/* ==================================================== */}
-      {/* 7. USER AUTH MODAL (REGISTRATION & LOGIN)            */}
+      {/* 7. FULLSCREEN VIEWING PAYMENT PROOF MODAL            */}
+      {/* ==================================================== */}
+      {viewingProof && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-xl p-4">
+          <div className="bg-zinc-950 border border-zinc-800 rounded-3xl max-w-sm w-full p-5 text-white space-y-4 shadow-2xl relative text-center">
+            <div className="flex justify-between items-center border-b border-zinc-800 pb-2">
+              <span className="text-xs font-bold text-emerald-400">💸 উইথড্র সফল পেমেন্ট প্রুফ</span>
+              <button onClick={() => setViewingProof(null)} className="text-zinc-500 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="rounded-2xl overflow-hidden border border-zinc-800 bg-black flex items-center justify-center max-h-[70vh]">
+              <img src={viewingProof.proofImage} alt="Payment Proof" className="max-h-[65vh] object-contain w-full" />
+            </div>
+
+            <div className="bg-zinc-900 p-3 rounded-xl border border-zinc-800 flex justify-between items-center text-xs">
+              <div>
+                <div className="font-bold text-white text-left">{viewingProof.userName}</div>
+                <div className="text-[10px] text-zinc-400 text-left">{viewingProof.gateway}</div>
+              </div>
+              <div className="font-mono font-black text-emerald-400 text-sm">{viewingProof.amount}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================================================== */}
+      {/* 8. USER AUTH MODAL (REGISTRATION & LOGIN)            */}
       {/* ==================================================== */}
       {isAuthModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
@@ -863,7 +999,7 @@ export default function HomeExperience({
       )}
 
       {/* ==================================================== */}
-      {/* 8. SPONSORED VOTING MODAL                            */}
+      {/* 9. SPONSORED VOTING MODAL                            */}
       {/* ==================================================== */}
       {votingPhoto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
@@ -934,7 +1070,7 @@ export default function HomeExperience({
       )}
 
       {/* ==================================================== */}
-      {/* 9. DOWNLOAD QUALITY MODAL                            */}
+      {/* 10. DOWNLOAD QUALITY MODAL                           */}
       {/* ==================================================== */}
       {downloadPhoto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">

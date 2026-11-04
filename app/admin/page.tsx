@@ -8,18 +8,29 @@ import {
   CheckCircle,
   XCircle,
   Send,
-  ArrowLeft
+  ArrowLeft,
+  Image as ImageIcon,
+  UploadCloud
 } from "lucide-react";
 import Link from "next/link";
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<"PAYOUTS" | "NOTICES">("PAYOUTS");
+  const [activeTab, setActiveTab] = useState<"PAYOUTS" | "NOTICES" | "PROOFS">("PAYOUTS");
 
   // Notices state
   const [noticeTitle, setNoticeTitle] = useState("");
   const [noticeTag, setNoticeTag] = useState("PAYOUT");
   const [noticeStatus, setNoticeStatus] = useState<string | null>(null);
   const [loadingNotice, setLoadingNotice] = useState(false);
+
+  // Payment Proof state
+  const [proofUser, setProofUser] = useState("");
+  const [proofAmount, setProofAmount] = useState("৳৫০০");
+  const [proofGateway, setProofGateway] = useState("BKASH");
+  const [proofTrx, setProofTrx] = useState("");
+  const [proofImageBase64, setProofImageBase64] = useState<string | null>(null);
+  const [proofStatus, setProofStatus] = useState<string | null>(null);
+  const [proofLoading, setProofLoading] = useState(false);
 
   // Pending payouts list
   const [payouts, setPayouts] = useState([
@@ -84,6 +95,74 @@ export default function AdminDashboard() {
     }
   };
 
+  // স্ক্রিনশট সিলেক্ট করলে ইমেজ কম্প্রেস করে বেস৬৪ করা
+  const handleProofImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const maxDim = 800; // মোবাইল স্ক্রিনশটের জন্য উপযুক্ত
+        let w = img.width;
+        let h = img.height;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+          } else {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
+          }
+        }
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(img, 0, 0, w, h);
+        setProofImageBase64(canvas.toDataURL("image/jpeg", 0.7));
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handlePostProof = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!proofImageBase64) {
+      alert("অনুগ্রহ করে বিকাশের স্ক্রিনশট সিলেক্ট করুন!");
+      return;
+    }
+    setProofLoading(true);
+
+    try {
+      const res = await fetch("/api/admin/proofs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userName: proofUser,
+          amount: proofAmount,
+          gateway: proofGateway,
+          trxId: proofTrx,
+          proofImage: proofImageBase64,
+        }),
+      });
+
+      if (res.ok) {
+        setProofStatus("পেমেন্ট প্রুফ সফলভাবে প্রকাশিত হয়েছে! হোমপেজে প্রদর্শিত হবে।");
+        setProofUser("");
+        setProofTrx("");
+        setProofImageBase64(null);
+        setTimeout(() => setProofStatus(null), 4000);
+      }
+    } catch {
+      alert("প্রুফ আপলোড ব্যর্থ হয়েছে।");
+    } finally {
+      setProofLoading(false);
+    }
+  };
+
   return (
     <main className="min-h-screen bg-black text-white p-6 md:p-10 max-w-[1300px] mx-auto space-y-8">
       {/* Top Header */}
@@ -98,7 +177,7 @@ export default function AdminDashboard() {
             <span>PicEarnHub Admin Control Center</span>
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
-            Manage live bKash/Nagad/Skrill withdrawals, announcements, and platform tasks.
+            Manage live withdrawals, announcements, and payment proofs.
           </p>
         </div>
 
@@ -111,13 +190,11 @@ export default function AdminDashboard() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-zinc-800 pb-3">
+      <div className="flex gap-2 border-b border-zinc-800 pb-3 overflow-x-auto">
         <button
           onClick={() => setActiveTab("PAYOUTS")}
-          className={`py-2 px-4 rounded-xl text-xs font-black transition-colors flex items-center gap-2 ${
-            activeTab === "PAYOUTS"
-              ? "bg-amber-400 text-black shadow-lg shadow-amber-400/20"
-              : "bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-white"
+          className={`py-2 px-4 rounded-xl text-xs font-black transition-colors flex items-center gap-2 whitespace-nowrap ${
+            activeTab === "PAYOUTS" ? "bg-amber-400 text-black shadow-lg shadow-amber-400/20" : "bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-white"
           }`}
         >
           <Wallet className="w-4 h-4" />
@@ -126,14 +203,22 @@ export default function AdminDashboard() {
 
         <button
           onClick={() => setActiveTab("NOTICES")}
-          className={`py-2 px-4 rounded-xl text-xs font-black transition-colors flex items-center gap-2 ${
-            activeTab === "NOTICES"
-              ? "bg-amber-400 text-black shadow-lg shadow-amber-400/20"
-              : "bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-white"
+          className={`py-2 px-4 rounded-xl text-xs font-black transition-colors flex items-center gap-2 whitespace-nowrap ${
+            activeTab === "NOTICES" ? "bg-amber-400 text-black shadow-lg shadow-amber-400/20" : "bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-white"
           }`}
         >
           <Megaphone className="w-4 h-4" />
           <span>Post Live Notice (সাইডবার নোটিশ)</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("PROOFS")}
+          className={`py-2 px-4 rounded-xl text-xs font-black transition-colors flex items-center gap-2 whitespace-nowrap ${
+            activeTab === "PROOFS" ? "bg-amber-400 text-black shadow-lg shadow-amber-400/20" : "bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-white"
+          }`}
+        >
+          <ImageIcon className="w-4 h-4" />
+          <span>Upload Payout Proof (পেমেন্ট প্রুফ আপলোড)</span>
         </button>
       </div>
 
@@ -195,7 +280,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* TAB 2: POST LIVE NOTICE */}
+      {/* TAB 2: POST NOTICE */}
       {activeTab === "NOTICES" && (
         <div className="max-w-xl bg-zinc-950 border border-zinc-800 rounded-3xl p-6 space-y-4 shadow-2xl">
           <div className="flex items-center gap-2 border-b border-zinc-800 pb-3">
@@ -226,7 +311,7 @@ export default function AdminDashboard() {
             </div>
 
             <div>
-              <label className="text-[11px] font-semibold text-zinc-400 block mb-1">Notice Headline (বাংলা বা ইংরেজি)</label>
+              <label className="text-[11px] font-semibold text-zinc-400 block mb-1">Notice Headline</label>
               <textarea
                 rows={3}
                 required
@@ -243,7 +328,117 @@ export default function AdminDashboard() {
               className="w-full py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 disabled:opacity-50 text-black font-black text-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 shadow-md shadow-amber-400/20"
             >
               <Send className="w-3.5 h-3.5" />
-              <span>{loadingNotice ? "Broadcasting..." : "Broadcast Notice Live (নোটিশ প্রকাশ করুন)"}</span>
+              <span>{loadingNotice ? "Broadcasting..." : "Broadcast Notice Live"}</span>
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* TAB 3: UPLOAD PAYOUT PROOF */}
+      {activeTab === "PROOFS" && (
+        <div className="max-w-xl bg-zinc-950 border border-zinc-800 rounded-3xl p-6 space-y-4 shadow-2xl">
+          <div className="flex items-center gap-2 border-b border-zinc-800 pb-3">
+            <ImageIcon className="w-5 h-5 text-amber-400" />
+            <h2 className="text-base font-black text-white">Upload Payment Proof (বিকাশ / নগদ স্ক্রিনশট)</h2>
+          </div>
+
+          {proofStatus && (
+            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold flex items-center gap-2">
+              <CheckCircle className="w-4 h-4" />
+              <span>{proofStatus}</span>
+            </div>
+          )}
+
+          <form onSubmit={handlePostProof} className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[11px] font-semibold text-zinc-400 block mb-1">ইউজারের নাম (User Name)</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="যেমন: Tanvir Hasan"
+                  value={proofUser}
+                  onChange={(e) => setProofUser(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-zinc-400 block mb-1">টাকার পরিমাণ (Amount)</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="যেমন: ৳৫০০ বা $৫.০০"
+                  value={proofAmount}
+                  onChange={(e) => setProofAmount(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 font-bold"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[11px] font-semibold text-zinc-400 block mb-1">পেমেন্ট মেথড (Gateway)</label>
+                <select
+                  value={proofGateway}
+                  onChange={(e) => setProofGateway(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                >
+                  <option value="BKASH">bKash (বিকাশ)</option>
+                  <option value="NAGAD">Nagad (নগদ)</option>
+                  <option value="ROCKET">Rocket (রকেট)</option>
+                  <option value="SKRILL">Skrill</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-zinc-400 block mb-1">TrxID (ঐচ্ছিক)</label>
+                <input
+                  type="text"
+                  placeholder="9H48SK20..."
+                  value={proofTrx}
+                  onChange={(e) => setProofTrx(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 font-mono"
+                />
+              </div>
+            </div>
+
+            {/* স্ক্রিনশট ফাইল আপলোডার */}
+            <div>
+              <label className="text-[11px] font-semibold text-zinc-400 block mb-1">
+                বিকাশ/লেনদেনের স্ক্রিনশট সিলেক্ট করুন (Screenshot Image)
+              </label>
+              <div className="border-2 border-dashed border-zinc-800 hover:border-amber-400 rounded-2xl p-4 text-center cursor-pointer bg-zinc-900/40">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleProofImageSelect}
+                  className="hidden"
+                  id="proof-upload"
+                />
+                <label htmlFor="proof-upload" className="cursor-pointer flex flex-col items-center gap-1.5">
+                  <UploadCloud className="w-8 h-8 text-amber-400" />
+                  <span className="text-xs font-bold text-zinc-300">
+                    {proofImageBase64 ? "✅ স্ক্রিনশট সিলেক্ট করা হয়েছে (পরিবর্তন করতে ক্লিক করুন)" : "ছবি আপলোড করতে ক্লিক করুন"}
+                  </span>
+                  <span className="text-[10px] text-zinc-500">PNG, JPG, WebP স্ক্রিনশট</span>
+                </label>
+              </div>
+
+              {proofImageBase64 && (
+                <div className="mt-2 p-2 bg-zinc-900 rounded-xl border border-zinc-800 flex justify-center">
+                  <img src={proofImageBase64} alt="Proof Preview" className="max-h-36 object-contain rounded-lg" />
+                </div>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={proofLoading}
+              className="w-full py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 disabled:opacity-50 text-black font-black text-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 shadow-md shadow-amber-400/20"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>{proofLoading ? "Publishing..." : "পেমেন্ট প্রুফ পাবলিশ করুন (Publish Proof)"}</span>
             </button>
           </form>
         </div>

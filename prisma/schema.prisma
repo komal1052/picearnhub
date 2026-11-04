@@ -390,3 +390,15 @@ model AdPlacement {
 
   updatedAt       DateTime        @updatedAt
 }
+
+model PayoutProof {
+  id         String   @id @default(cuid())
+  userName   String
+  amount     String   // যেমন: "৳৫০০" বা "$5.00"
+  gateway    String   // BKASH, NAGAD, SKRILL
+  proofImage String   @db.Text // স্ক্রিনশটের ইমেজ ডাটা
+  trxId      String?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+}
