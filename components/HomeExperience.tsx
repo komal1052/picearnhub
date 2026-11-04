@@ -22,8 +22,9 @@ import {
   MapPin,
   Camera,
   Maximize2,
-  Image as ImageIcon,
-  Check
+  UploadCloud,
+  PlusCircle,
+  Image as ImageIcon
 } from "lucide-react";
 import SocialBar from "./SocialBar";
 
@@ -70,6 +71,17 @@ export default function HomeExperience({
   const [profileLoading, setProfileLoading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
+  // Photo Upload Modal States (ইউজার ছবি জমা দেওয়ার মডেল)
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [uploadTitle, setUploadTitle] = useState("");
+  const [uploadCategory, setUploadCategory] = useState("Nature");
+  const [uploadContestId, setUploadContestId] = useState("");
+  const [uploadIsAi, setUploadIsAi] = useState(false);
+  const [uploadAiModel, setUploadAiModel] = useState("Midjourney v6");
+  const [uploadImageBase64, setUploadImageBase64] = useState<string | null>(null);
+  const [uploadLoading, setUploadLoading] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
   // Voting Modal States
   const [votingPhoto, setVotingPhoto] = useState<any | null>(null);
   const [voteCountdown, setVoteCountdown] = useState(6);
@@ -85,7 +97,6 @@ export default function HomeExperience({
 
   useEffect(() => {
     setMounted(true);
-    // পেমেন্ট প্রুফগুলো লোড করা
     fetch("/api/admin/proofs")
       .then((res) => res.json())
       .then((data) => {
@@ -205,7 +216,6 @@ export default function HomeExperience({
     setIsProfileModalOpen(true);
   };
 
-  // ফ্রেম থেকে ছবি সিলেক্ট করলে স্বয়ংক্রিয়ভাবে 150x150 কম্প্রেস করে ফ্রেমে বসানো
   const handleAvatarFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -215,19 +225,15 @@ export default function HomeExperience({
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement("canvas");
-        const size = 150; // প্রোফাইল অবতার সাইজ
+        const size = 150;
         canvas.width = size;
         canvas.height = size;
         const ctx = canvas.getContext("2d");
-
-        // স্কয়ার করে সেন্টারে ক্রপ
         const minSide = Math.min(img.width, img.height);
         const sx = (img.width - minSide) / 2;
         const sy = (img.height - minSide) / 2;
-
         ctx?.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
-        const compressedBase64 = canvas.toDataURL("image/jpeg", 0.75); // মাত্র ~8KB সাইজ
-        setProfileAvatar(compressedBase64);
+        setProfileAvatar(canvas.toDataURL("image/jpeg", 0.75));
       };
       img.src = event.target?.result as string;
     };
@@ -267,6 +273,93 @@ export default function HomeExperience({
     }
   };
 
+  // ইউজার ছবি সিলেক্ট করলে কম্প্রেস করে আপলোড রেডি করা
+  const handlePhotoFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const maxDim = 1200;
+        let w = img.width;
+        let h = img.height;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+          } else {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
+          }
+        }
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(img, 0, 0, w, h);
+        setUploadImageBase64(canvas.toDataURL("image/jpeg", 0.8));
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // ছবি সাবমিট করা
+  const handlePhotoSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser) {
+      alert("ছবি জমা দিতে অনুগ্রহ করে প্রথমে লগইন করুন!");
+      setIsUploadModalOpen(false);
+      setIsAuthModalOpen(true);
+      return;
+    }
+    if (!uploadImageBase64) {
+      alert("অনুগ্রহ করে একটি ছবি সিলেক্ট করুন!");
+      return;
+    }
+
+    setUploadLoading(true);
+
+    try {
+      const res = await fetch("/api/photos/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: currentUser.id,
+          title: uploadTitle,
+          category: uploadCategory,
+          contestId: uploadContestId || contests[0]?.id,
+          isAiGenerated: uploadIsAi,
+          aiModelUsed: uploadIsAi ? uploadAiModel : null,
+          imageBase64: uploadImageBase64,
+        }),
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        alert("🎉 ছবি সফলভাবে কনটেস্টে জমা হয়েছে! আপনার একাউন্টে ১৫ পয়েন্ট বোনাস যুক্ত হয়েছে।");
+        // নতুন ছবি লিস্টে যুক্ত করা
+        const newEntry = {
+          ...data.photo,
+          user: { name: currentUser.name, avatarUrl: currentUser.avatarUrl, badge: currentUser.badge },
+        };
+        setPhotoList((prev) => [newEntry, ...prev]);
+        setCurrentUser((prev: any) => ({ ...prev, pointsBalance: prev.pointsBalance + 15 }));
+        setIsUploadModalOpen(false);
+        setUploadTitle("");
+        setUploadImageBase64(null);
+      } else {
+        alert(data.error);
+      }
+    } catch {
+      alert("ছবি আপলোড ব্যর্থ হয়েছে। আবার চেষ্টা করুন।");
+    } finally {
+      setUploadLoading(false);
+    }
+  };
+
   const getPhotoUrl = (photo: any) => {
     if (photo.title.includes("Padma")) return "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1600";
     if (photo.title.includes("Rickshaw")) return "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1600";
@@ -287,9 +380,9 @@ export default function HomeExperience({
       <SocialBar />
 
       {/* ==================================================== */}
-      {/* 0. TOP NAVBAR WITH LOGO & USER PROFILE               */}
+      {/* 0. TOP NAVBAR WITH LOGO, UPLOAD & USER PROFILE       */}
       {/* ==================================================== */}
-      <header className="flex justify-between items-center border-b border-zinc-800 pb-4">
+      <header className="flex justify-between items-center border-b border-zinc-800 pb-4 gap-2">
         <div className="flex items-center gap-3">
           <div className="relative w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 text-black flex items-center justify-center font-black shadow-lg shadow-amber-500/20 overflow-hidden">
             <img
@@ -312,10 +405,26 @@ export default function HomeExperience({
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          {/* উজ্জ্বল "ছবি জমা দিন" বাটন */}
+          <button
+            onClick={() => {
+              if (!currentUser) {
+                alert("ছবি আপলোড করতে অনুগ্রহ করে প্রথমে একাউন্টে লগইন করুন!");
+                setIsAuthModalOpen(true);
+              } else {
+                setIsUploadModalOpen(true);
+              }
+            }}
+            className="py-2 px-3 md:px-4 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black font-black text-xs flex items-center gap-1.5 transition-transform active:scale-95 shadow-lg shadow-amber-500/20"
+          >
+            <PlusCircle className="w-4 h-4 stroke-[2.5]" />
+            <span>ছবি জমা দিন</span>
+          </button>
+
           {currentUser ? (
-            <div className="flex items-center gap-2.5">
-              <div className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-zinc-900 border border-zinc-800 text-amber-400 text-xs font-bold">
+            <div className="flex items-center gap-2">
+              <div className="hidden sm:flex items-center gap-1 px-3 py-1.5 rounded-full bg-zinc-900 border border-zinc-800 text-amber-400 text-xs font-bold">
                 <Coins className="w-4 h-4" />
                 <span>{currentUser.pointsBalance} Pts</span>
               </div>
@@ -330,7 +439,7 @@ export default function HomeExperience({
                 ) : (
                   <UserIcon className="w-4 h-4 text-zinc-400" />
                 )}
-                <span className="text-xs font-bold text-white max-w-[120px] truncate">{currentUser.name}</span>
+                <span className="text-xs font-bold text-white max-w-[100px] truncate">{currentUser.name}</span>
 
                 <button
                   onClick={handleOpenEditProfile}
@@ -352,9 +461,9 @@ export default function HomeExperience({
           ) : (
             <button
               onClick={() => setIsAuthModalOpen(true)}
-              className="py-2 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-black text-xs transition-transform active:scale-95 shadow-md shadow-amber-400/20"
+              className="py-2 px-3.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 font-bold text-xs transition-colors"
             >
-              লগইন / রেজিস্টার (Sign In)
+              সাইন ইন
             </button>
           )}
         </div>
@@ -364,7 +473,6 @@ export default function HomeExperience({
       {/* 1. HERO SECTION: WINNER & LIVE NOTICE/PROOFS         */}
       {/* ==================================================== */}
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-        {/* Left (8 Cols): Grand Champion Winner Slider */}
         <div
           onClick={() => {
             const winner = photoList.find((p) => p.title.includes("Tiger"));
@@ -424,10 +532,8 @@ export default function HomeExperience({
           </div>
         </div>
 
-        {/* Right (4 Cols): সাইডবার (বুলেটিন ও উইথড্র প্রুফ ট্যাব) */}
         <div className="lg:col-span-4 rounded-3xl bg-zinc-950 border border-zinc-800 p-5 flex flex-col justify-between shadow-2xl space-y-4">
           <div className="space-y-3">
-            {/* সাইডবার সুইচ ট্যাব: নোটিশ বনাম পেমেন্ট প্রুফ */}
             <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
               <div className="flex gap-2">
                 <button
@@ -457,7 +563,6 @@ export default function HomeExperience({
               </span>
             </div>
 
-            {/* TAB A: নোটিশ বোর্ড */}
             {sidebarTab === "NOTICES" ? (
               <div className="space-y-2.5 divide-y divide-zinc-900">
                 {announcements.map((a) => (
@@ -473,7 +578,6 @@ export default function HomeExperience({
                 ))}
               </div>
             ) : (
-              /* TAB B: লাইভ উইথড্র ও পেমেন্ট প্রুফ গ্যালারি */
               <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1 scrollbar-none">
                 {proofs.length === 0 ? (
                   <div className="text-center py-6 text-zinc-500 text-xs">
@@ -507,7 +611,6 @@ export default function HomeExperience({
             )}
           </div>
 
-          {/* Adsterra 300x250 Sponsored Slot */}
           <div
             onClick={triggerAdsterraDirectLink}
             className="p-3 rounded-2xl bg-zinc-900/40 border border-zinc-800/80 text-center space-y-1 cursor-pointer hover:border-amber-400/40 transition-colors"
@@ -672,7 +775,148 @@ export default function HomeExperience({
       </section>
 
       {/* ==================================================== */}
-      {/* 5. CINEMATIC FULLSCREEN LIGHTBOX MODAL               */}
+      {/* 5. MODAL: নতুন ছবি জমা দেওয়ার মডেল (UPLOAD MODAL)    */}
+      {/* ==================================================== */}
+      {isUploadModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
+          <div className="bg-zinc-950 border border-zinc-800 rounded-3xl max-w-md w-full p-6 text-white space-y-4 shadow-2xl relative max-h-[90vh] overflow-y-auto scrollbar-none">
+            <div className="flex justify-between items-center border-b border-zinc-800 pb-3">
+              <div className="flex items-center gap-2">
+                <UploadCloud className="w-5 h-5 text-amber-400" />
+                <h3 className="font-extrabold text-sm text-white">কনটেস্টে ছবি জমা দিন (Submit Photo)</h3>
+              </div>
+              <button onClick={() => setIsUploadModalOpen(false)} className="text-zinc-500 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handlePhotoSubmit} className="space-y-3.5">
+              {/* ফাইল সিলেক্ট বক্স */}
+              <div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={photoInputRef}
+                  onChange={handlePhotoFileSelect}
+                  className="hidden"
+                />
+                <div
+                  onClick={() => photoInputRef.current?.click()}
+                  className="border-2 border-dashed border-zinc-800 hover:border-amber-400 rounded-2xl p-4 text-center cursor-pointer bg-zinc-900/40 transition-colors"
+                >
+                  {uploadImageBase64 ? (
+                    <div className="space-y-2">
+                      <img
+                        src={uploadImageBase64}
+                        alt="Upload Preview"
+                        className="max-h-40 mx-auto rounded-xl object-contain"
+                      />
+                      <span className="text-[11px] text-emerald-400 font-bold block">
+                        ✅ ছবি সিলেক্ট হয়েছে (পরিবর্তন করতে ক্লিক করুন)
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-1.5 py-4">
+                      <UploadCloud className="w-8 h-8 text-amber-400" />
+                      <span className="text-xs font-bold text-zinc-200">
+                        ক্লিক করে আপনার ছবি সিলেক্ট করুন
+                      </span>
+                      <span className="text-[10px] text-zinc-500">ফোন বা পিসি থেকে যেকোনো ছবি</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* ছবির টাইটেল */}
+              <div>
+                <label className="text-[11px] font-semibold text-zinc-400 block mb-1">
+                  ছবির নাম / টাইটেল (Photo Title)
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="যেমন: Sunset Over Padma River"
+                  value={uploadTitle}
+                  onChange={(e) => setUploadTitle(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {/* ক্যাটাগরি */}
+                <div>
+                  <label className="text-[11px] font-semibold text-zinc-400 block mb-1">ক্যাটাগরি</label>
+                  <select
+                    value={uploadCategory}
+                    onChange={(e) => setUploadCategory(e.target.value)}
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                  >
+                    <option value="Nature">Nature (প্রকৃতি)</option>
+                    <option value="Street">Street (রাস্তাঘাট)</option>
+                    <option value="Portrait">Portrait (প্রতিকৃতি)</option>
+                    <option value="Wallpaper">Wallpaper (ওয়ালপেপার)</option>
+                    <option value="Abstract">Abstract (এবস্ট্রাক্ট)</option>
+                  </select>
+                </div>
+
+                {/* কোন কনটেস্টে অংশ নেবে */}
+                <div>
+                  <label className="text-[11px] font-semibold text-zinc-400 block mb-1">কনটেস্ট বাছাই</label>
+                  <select
+                    value={uploadContestId}
+                    onChange={(e) => setUploadContestId(e.target.value)}
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                  >
+                    {contests.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.tier} (${c.prizePool})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* AI Generated টিকবক্স */}
+              <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={uploadIsAi}
+                    onChange={(e) => setUploadIsAi(e.target.checked)}
+                    className="w-4 h-4 rounded bg-zinc-800 border-zinc-700 text-amber-400 focus:ring-0"
+                  />
+                  <span className="text-xs font-bold text-white flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>ছবিটি কি AI দিয়ে তৈরি? (Is this AI Art?)</span>
+                  </span>
+                </label>
+
+                {uploadIsAi && (
+                  <input
+                    type="text"
+                    placeholder="কোন AI টুল ব্যবহার করেছেন? (যেমন: Midjourney v6)"
+                    value={uploadAiModel}
+                    onChange={(e) => setUploadAiModel(e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-amber-400"
+                  />
+                )}
+              </div>
+
+              <button
+                type="submit"
+                disabled={uploadLoading}
+                className="w-full py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 disabled:opacity-50 text-black font-black text-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 shadow-lg shadow-amber-400/20"
+              >
+                <PlusCircle className="w-4 h-4 stroke-[2.5]" />
+                <span>{uploadLoading ? "আপলোড হচ্ছে..." : "কনটেস্টে জমা দিন (+১৫ পয়েন্ট বোনাস)"}</span>
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ==================================================== */}
+      {/* 6. CINEMATIC FULLSCREEN LIGHTBOX MODAL               */}
       {/* ==================================================== */}
       {previewPhoto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-2xl p-4 md:p-8 animate-in fade-in duration-200">
@@ -743,7 +987,9 @@ export default function HomeExperience({
 
               <div className="space-y-2.5 pt-4 border-t border-zinc-900">
                 <button
-                  onClick={() => setVotingPhoto(previewPhoto)}
+                  onClick={() => {
+                    setVotingPhoto(previewPhoto);
+                  }}
                   disabled={previewPhoto.hasVoted}
                   className={`w-full py-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-transform active:scale-95 ${
                     previewPhoto.hasVoted
@@ -756,7 +1002,9 @@ export default function HomeExperience({
                 </button>
 
                 <button
-                  onClick={() => setDownloadPhoto(previewPhoto)}
+                  onClick={() => {
+                    setDownloadPhoto(previewPhoto);
+                  }}
                   className="w-full py-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-xs flex items-center justify-center gap-2 border border-zinc-800 transition-colors"
                 >
                   <Download className="w-4 h-4" />
@@ -769,7 +1017,7 @@ export default function HomeExperience({
       )}
 
       {/* ==================================================== */}
-      {/* 6. EDIT USER PROFILE MODAL (WITH AVATAR UPLOAD FRAME)*/}
+      {/* 7. EDIT USER PROFILE MODAL                           */}
       {/* ==================================================== */}
       {isProfileModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
@@ -785,7 +1033,6 @@ export default function HomeExperience({
             </div>
 
             <form onSubmit={handleProfileUpdate} className="space-y-4">
-              {/* গোল প্রোফাইল পিকচার ফ্রেম (ক্লিক করলেই ছবি আপলোড) */}
               <div className="flex flex-col items-center justify-center space-y-2">
                 <input
                   type="file"
@@ -882,7 +1129,7 @@ export default function HomeExperience({
       )}
 
       {/* ==================================================== */}
-      {/* 7. FULLSCREEN VIEWING PAYMENT PROOF MODAL            */}
+      {/* 8. FULLSCREEN VIEWING PAYMENT PROOF MODAL            */}
       {/* ==================================================== */}
       {viewingProof && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-xl p-4">
@@ -910,7 +1157,7 @@ export default function HomeExperience({
       )}
 
       {/* ==================================================== */}
-      {/* 8. USER AUTH MODAL (REGISTRATION & LOGIN)            */}
+      {/* 9. USER AUTH MODAL (REGISTRATION & LOGIN)            */}
       {/* ==================================================== */}
       {isAuthModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
@@ -999,7 +1246,7 @@ export default function HomeExperience({
       )}
 
       {/* ==================================================== */}
-      {/* 9. SPONSORED VOTING MODAL                            */}
+      {/* 10. SPONSORED VOTING MODAL                           */}
       {/* ==================================================== */}
       {votingPhoto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
@@ -1070,7 +1317,7 @@ export default function HomeExperience({
       )}
 
       {/* ==================================================== */}
-      {/* 10. DOWNLOAD QUALITY MODAL                           */}
+      {/* 11. DOWNLOAD QUALITY MODAL                           */}
       {/* ==================================================== */}
       {downloadPhoto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
