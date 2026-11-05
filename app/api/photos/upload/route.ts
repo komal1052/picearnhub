@@ -10,20 +10,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "ছবির টাইটেল এবং ছবি দেওয়া আবশ্যক।" }, { status: 400 });
     }
 
-    // ১. ইউজারের তথ্য চেক
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });
 
     if (!user) {
-      return NextResponse.json({ error: "অনুগ্রহ করে প্রথমে লগইন করুন।" }, { status: 401 });
+      return NextResponse.json({ error: "ইউজার একাউন্ট খুঁজে পাওয়া যায়নি। আবার লগইন করুন।" }, { status: 401 });
     }
 
-    // ২. ডাটাবেসে ছবি তৈরি করা
+    // ১. ডাটাবেসে ছবি তৈরি
     const newPhoto = await prisma.photo.create({
       data: {
         userId: user.id,
         title,
+        imageUrl: imageBase64,
         category: category || "Nature",
         aspectRatio: "RATIO_16_9",
         isFree: true,
@@ -33,9 +33,12 @@ export async function POST(req: NextRequest) {
         voteCount: 0,
         viewCount: 1,
       },
+      include: {
+        user: true,
+      },
     });
 
-    // ৩. অ্যাক্টিভ কনটেস্টে এন্ট্রি যুক্ত করা
+    // ২. কনটেস্টে যুক্ত করা (যদি কনটেস্ট থাকে)
     let targetContestId = contestId;
     if (!targetContestId) {
       const activeContest = await prisma.contest.findFirst({
@@ -46,32 +49,31 @@ export async function POST(req: NextRequest) {
     }
 
     if (targetContestId) {
-      await prisma.contestEntry.create({
-        data: {
-          contestId: targetContestId,
-          photoId: newPhoto.id,
-          userId: user.id,
-          votesReceived: 0,
-        },
-      });
+      try {
+        await prisma.contestEntry.create({
+          data: {
+            contestId: targetContestId,
+            photoId: newPhoto.id,
+            userId: user.id,
+            votesReceived: 0,
+          },
+        });
+      } catch (entryErr) {
+        console.warn("Contest entry notice:", entryErr);
+      }
     }
 
-    // ৪. ছবি আপলোড করার জন্য রিওয়ার্ড পয়েন্ট (+১৫ পয়েন্ট) দেওয়া
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { pointsBalance: { increment: 15 } },
-    });
+    // ৩. পয়েন্ট বোনাস দেওয়া
+    try {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { pointsBalance: { increment: 15 } },
+      });
+    } catch (ptErr) {
+      console.warn("Points update notice:", ptErr);
+    }
 
-    await prisma.pointTransaction.create({
-      data: {
-        userId: user.id,
-        amount: 15,
-        reason: "PHOTO_UPLOAD",
-        description: "ছবি আপলোড বোনাস",
-      },
-    });
-
-    // ৫. অ্যাডমিনের টেলিগ্রামে সাথে সাথে অ্যালার্ট পাঠানো
+    // ৪. টেলিগ্রামে নোটিফিকেশন পাঠানো
     notifyPhotoUploadAlert({
       title: newPhoto.title,
       category: newPhoto.category,
@@ -83,11 +85,12 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: "ছবি সফলভাবে জমা হয়েছে এবং ১৫ পয়েন্ট বোনাস পেয়েছেন!",
+      message: "ছবি সফলভাবে জমা হয়েছে!",
       photo: newPhoto,
     });
   } catch (error: any) {
     console.error("Upload error:", error);
-    return NextResponse.json({ error: "ছবি আপলোড ব্যর্থ হয়েছে।" }, { status: 500 });
+    // সরাসরি আসল কারণ ব্রাউজারে রিটার্ন করবে
+    return NextResponse.json({ error: error.message || "ছবি আপলোড ব্যর্থ হয়েছে।" }, { status: 400 });
   }
 }

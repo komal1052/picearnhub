@@ -24,6 +24,8 @@ import {
   Maximize2,
   UploadCloud,
   PlusCircle,
+  ChevronLeft,
+  ChevronRight,
   Image as ImageIcon
 } from "lucide-react";
 import SocialBar from "./SocialBar";
@@ -44,7 +46,32 @@ export default function HomeExperience({
   const [photoList, setPhotoList] = useState(initialPhotos);
   const [mounted, setMounted] = useState(false);
 
-  // সাইডবার ট্যাব: নোটিশ বনাম পেমেন্ট প্রুফ
+  // ====================================================
+  // অটোমেটিক মাল্টি-পিকচার স্লাইডার স্টেট
+  // ====================================================
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  const heroSlides = photoList.length > 0 ? photoList.slice(0, 5) : []; // সেরা ৫টি ছবি স্লাইডারে থাকবে
+
+  // প্রতি ৫ সেকেন্ড পর পর ছবি অটোমেটিক স্লাইড হবে
+  useEffect(() => {
+    if (heroSlides.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentSlideIndex((prev) => (prev + 1) % heroSlides.length);
+    }, 5000); // ৫ সেকেন্ড পর পর স্লাইড
+    return () => clearInterval(interval);
+  }, [heroSlides.length]);
+
+  const handleNextSlide = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentSlideIndex((prev) => (prev + 1) % heroSlides.length);
+  };
+
+  const handlePrevSlide = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentSlideIndex((prev) => (prev - 1 + heroSlides.length) % heroSlides.length);
+  };
+
+  // সাইডবার ট্যাব
   const [sidebarTab, setSidebarTab] = useState<"NOTICES" | "PROOFS">("NOTICES");
   const [proofs, setProofs] = useState<any[]>([]);
   const [viewingProof, setViewingProof] = useState<any | null>(null);
@@ -71,7 +98,7 @@ export default function HomeExperience({
   const [profileLoading, setProfileLoading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
-  // Photo Upload Modal States (ইউজার ছবি জমা দেওয়ার মডেল)
+  // Photo Upload Modal States
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [uploadTitle, setUploadTitle] = useState("");
   const [uploadCategory, setUploadCategory] = useState("Nature");
@@ -273,7 +300,6 @@ export default function HomeExperience({
     }
   };
 
-  // ইউজার ছবি সিলেক্ট করলে কম্প্রেস করে আপলোড রেডি করা
   const handlePhotoFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -306,7 +332,6 @@ export default function HomeExperience({
     reader.readAsDataURL(file);
   };
 
-  // ছবি সাবমিট করা
   const handlePhotoSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) {
@@ -340,7 +365,6 @@ export default function HomeExperience({
 
       if (res.ok) {
         alert("🎉 ছবি সফলভাবে কনটেস্টে জমা হয়েছে! আপনার একাউন্টে ১৫ পয়েন্ট বোনাস যুক্ত হয়েছে।");
-        // নতুন ছবি লিস্টে যুক্ত করা
         const newEntry = {
           ...data.photo,
           user: { name: currentUser.name, avatarUrl: currentUser.avatarUrl, badge: currentUser.badge },
@@ -361,10 +385,13 @@ export default function HomeExperience({
   };
 
   const getPhotoUrl = (photo: any) => {
-    if (photo.title.includes("Padma")) return "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1600";
-    if (photo.title.includes("Rickshaw")) return "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1600";
-    if (photo.title.includes("Cyberpunk")) return "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1600";
-    return "https://images.unsplash.com/photo-1561731216-c3a4d99437d5?w=1600";
+    if (!photo) return "https://images.unsplash.com/photo-1561731216-c3a4d99437d5?w=1600";
+    if (photo.imageUrl) return photo.imageUrl;
+    if (photo.title?.includes("Padma")) return "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1600";
+    if (photo.title?.includes("Rickshaw")) return "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1600";
+    if (photo.title?.includes("Cyberpunk")) return "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1600";
+    if (photo.title?.includes("Tiger")) return "https://images.unsplash.com/photo-1561731216-c3a4d99437d5?w=1600";
+    return photo.imageUrl || "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1600";
   };
 
   const filteredPhotos = photoList.filter((p) => {
@@ -374,6 +401,9 @@ export default function HomeExperience({
     if (activeFilter === "AI") return p.isAiGenerated;
     return true;
   });
+
+  // বর্তমান স্লাইডের ছবি ও তথ্য
+  const activeHeroPhoto = heroSlides[currentSlideIndex] || heroSlides[0];
 
   return (
     <div className="space-y-8">
@@ -406,7 +436,6 @@ export default function HomeExperience({
         </div>
 
         <div className="flex items-center gap-2.5">
-          {/* উজ্জ্বল "ছবি জমা দিন" বাটন */}
           <button
             onClick={() => {
               if (!currentUser) {
@@ -437,7 +466,9 @@ export default function HomeExperience({
                     className="w-6 h-6 rounded-full object-cover border border-amber-400"
                   />
                 ) : (
-                  <UserIcon className="w-4 h-4 text-zinc-400" />
+                  <div className="w-6 h-6 rounded-full bg-amber-400 text-black font-extrabold text-xs flex items-center justify-center">
+                    {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : "U"}
+                  </div>
                 )}
                 <span className="text-xs font-bold text-white max-w-[100px] truncate">{currentUser.name}</span>
 
@@ -470,68 +501,118 @@ export default function HomeExperience({
       </header>
 
       {/* ==================================================== */}
-      {/* 1. HERO SECTION: WINNER & LIVE NOTICE/PROOFS         */}
+      {/* 1. HERO SECTION: অটো মাল্টি-পিকচার স্লাইডার           */}
       {/* ==================================================== */}
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        {/* Left (8 Cols): অটোমেটিক স্লাইডার */}
         <div
           onClick={() => {
-            const winner = photoList.find((p) => p.title.includes("Tiger"));
-            if (winner) setPreviewPhoto(winner);
+            if (activeHeroPhoto) setPreviewPhoto(activeHeroPhoto);
           }}
           className="lg:col-span-8 relative rounded-3xl overflow-hidden bg-zinc-950 border border-zinc-800 shadow-2xl h-[420px] group flex flex-col justify-end p-6 cursor-pointer"
         >
-          <img
-            src="https://images.unsplash.com/photo-1561731216-c3a4d99437d5?w=1600"
-            alt="Winner Photo"
-            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-          />
+          {/* স্লাইডারের ছবি (স্মুথ ফেড ট্রানজিশন সহ) */}
+          {activeHeroPhoto && (
+            <img
+              key={activeHeroPhoto.id}
+              src={getPhotoUrl(activeHeroPhoto)}
+              alt={activeHeroPhoto.title}
+              className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-all duration-700 animate-in fade-in zoom-in-95"
+            />
+          )}
+
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-transparent to-transparent" />
 
+          {/* টপ ব্যাজ */}
           <div className="absolute top-5 left-5 z-10 flex items-center gap-2 bg-amber-400 text-black px-3.5 py-1.5 rounded-full font-black text-xs uppercase tracking-wider shadow-lg">
             <Trophy className="w-4 h-4" />
-            <span>Grand Contest Winner &bull; $50.00 Won</span>
+            <span>Featured Contest Entry &bull; Top Rated</span>
           </div>
 
+          {/* ফুল ভিউ আইকন */}
           <div className="absolute top-5 right-5 z-10 bg-black/60 backdrop-blur-md p-2 rounded-xl text-white opacity-0 group-hover:opacity-100 transition-opacity">
             <Maximize2 className="w-4 h-4" />
           </div>
 
-          <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div className="space-y-2">
-              <span className="text-amber-400 text-xs font-bold uppercase tracking-wider">
-                মুনসুন রিফ্লেকশন চ্যালেঞ্জ (বিগত বিজয়ী)
-              </span>
-              <h2 className="text-2xl md:text-3xl font-black text-white leading-tight">
-                Bengal Tiger Gaze at Dawn
-              </h2>
+          {/* স্লাইডার ম্যানুয়াল কন্ট্রোল বাটন (< এবং >) */}
+          <button
+            onClick={handlePrevSlide}
+            className="absolute left-3 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-black/60 hover:bg-black/90 text-white border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity"
+            title="Previous Picture"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <button
+            onClick={handleNextSlide}
+            className="absolute right-3 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-black/60 hover:bg-black/90 text-white border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity"
+            title="Next Picture"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
 
-              <div className="flex items-center gap-3 bg-black/70 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-white/10 w-fit">
-                <img
-                  src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150"
-                  alt="Tanvir Hasan"
-                  className="w-10 h-10 rounded-full object-cover border border-amber-400"
-                />
-                <div>
-                  <div className="flex items-center gap-1.5 font-bold text-sm text-white">
-                    <span>Tanvir Hasan</span>
-                    <Flame className="w-4 h-4 text-orange-500 fill-orange-500" />
+          {/* স্লাইডারের টেক্সট ও ফটোগ্রাফার ডিটেইলস */}
+          {activeHeroPhoto && (
+            <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+              <div className="space-y-2">
+                <span className="text-amber-400 text-xs font-bold uppercase tracking-wider">
+                  Category: {activeHeroPhoto.category || "Featured"}
+                </span>
+                <h2 className="text-2xl md:text-3xl font-black text-white leading-tight drop-shadow-md">
+                  {activeHeroPhoto.title}
+                </h2>
+
+                <div className="flex items-center gap-3 bg-black/70 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-white/10 w-fit">
+                  {activeHeroPhoto.user?.avatarUrl ? (
+                    <img
+                      src={activeHeroPhoto.user.avatarUrl}
+                      alt={activeHeroPhoto.user.name}
+                      className="w-10 h-10 rounded-full object-cover border border-amber-400"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-amber-400 text-black font-extrabold text-sm flex items-center justify-center">
+                      {activeHeroPhoto.user?.name ? activeHeroPhoto.user.name.charAt(0).toUpperCase() : "U"}
+                    </div>
+                  )}
+                  <div>
+                    <div className="flex items-center gap-1.5 font-bold text-sm text-white">
+                      <span>{activeHeroPhoto.user?.name}</span>
+                      {activeHeroPhoto.user?.badge === "BLUE_VERIFIED" && <CheckCircle className="w-4 h-4 text-sky-400" />}
+                      {activeHeroPhoto.user?.badge === "FIRE_CREATOR" && <Flame className="w-4 h-4 text-orange-500 fill-orange-500" />}
+                    </div>
+                    <span className="text-xs text-zinc-400">{activeHeroPhoto.user?.location || "Bangladesh"}</span>
                   </div>
-                  <span className="text-xs text-zinc-400">Dhaka, Bangladesh</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 bg-zinc-900/90 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-zinc-700 text-white self-start md:self-end">
+                <Heart className="w-5 h-5 text-rose-500 fill-rose-500" />
+                <div>
+                  <div className="text-[10px] text-zinc-400 uppercase font-semibold">Total Votes</div>
+                  <div className="font-mono font-black text-base leading-none">{activeHeroPhoto.voteCount} Votes</div>
                 </div>
               </div>
             </div>
+          )}
 
-            <div className="flex items-center gap-2.5 bg-zinc-900/90 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-zinc-700 text-white self-start md:self-end">
-              <Heart className="w-5 h-5 text-rose-500 fill-rose-500" />
-              <div>
-                <div className="text-[10px] text-zinc-400 uppercase font-semibold">Winning Votes</div>
-                <div className="font-mono font-black text-base leading-none">180 Votes</div>
-              </div>
-            </div>
+          {/* নিচে স্লাইড ইন্ডিকেটর ডটস */}
+          <div className="absolute bottom-3 right-6 flex gap-1.5 z-20">
+            {heroSlides.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCurrentSlideIndex(idx);
+                }}
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  idx === currentSlideIndex ? "w-6 bg-amber-400" : "w-2 bg-white/40 hover:bg-white/70"
+                }`}
+              />
+            ))}
           </div>
         </div>
 
+        {/* Right (4 Cols): সাইডবার (বুলেটিন ও উইথড্র প্রুফ) */}
         <div className="lg:col-span-4 rounded-3xl bg-zinc-950 border border-zinc-800 p-5 flex flex-col justify-between shadow-2xl space-y-4">
           <div className="space-y-3">
             <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
@@ -734,12 +815,23 @@ export default function HomeExperience({
                 <div className="flex items-center justify-between">
                   <div className="max-w-[170px]">
                     <h3 className="text-xs font-bold text-white truncate">{photo.title}</h3>
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <span className="text-[11px] text-zinc-400 truncate">{photo.user.name}</span>
-                      {photo.user.badge === "BLUE_VERIFIED" && (
+                    <div className="flex items-center gap-1.5 mt-1">
+                      {photo.user?.avatarUrl ? (
+                        <img
+                          src={photo.user.avatarUrl}
+                          alt={photo.user.name}
+                          className="w-4 h-4 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-4 h-4 rounded-full bg-amber-400 text-black font-extrabold text-[9px] flex items-center justify-center">
+                          {photo.user?.name ? photo.user.name.charAt(0).toUpperCase() : "U"}
+                        </div>
+                      )}
+                      <span className="text-[11px] text-zinc-400 truncate">{photo.user?.name}</span>
+                      {photo.user?.badge === "BLUE_VERIFIED" && (
                         <CheckCircle className="w-3.5 h-3.5 text-sky-400 flex-shrink-0" />
                       )}
-                      {photo.user.badge === "FIRE_CREATOR" && (
+                      {photo.user?.badge === "FIRE_CREATOR" && (
                         <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500 flex-shrink-0" />
                       )}
                     </div>
@@ -775,7 +867,7 @@ export default function HomeExperience({
       </section>
 
       {/* ==================================================== */}
-      {/* 5. MODAL: নতুন ছবি জমা দেওয়ার মডেল (UPLOAD MODAL)    */}
+      {/* 5. MODAL: ছবি জমা দেওয়ার মডেল                        */}
       {/* ==================================================== */}
       {isUploadModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
@@ -791,7 +883,6 @@ export default function HomeExperience({
             </div>
 
             <form onSubmit={handlePhotoSubmit} className="space-y-3.5">
-              {/* ফাইল সিলেক্ট বক্স */}
               <div>
                 <input
                   type="file"
@@ -827,7 +918,6 @@ export default function HomeExperience({
                 </div>
               </div>
 
-              {/* ছবির টাইটেল */}
               <div>
                 <label className="text-[11px] font-semibold text-zinc-400 block mb-1">
                   ছবির নাম / টাইটেল (Photo Title)
@@ -843,7 +933,6 @@ export default function HomeExperience({
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                {/* ক্যাটাগরি */}
                 <div>
                   <label className="text-[11px] font-semibold text-zinc-400 block mb-1">ক্যাটাগরি</label>
                   <select
@@ -859,7 +948,6 @@ export default function HomeExperience({
                   </select>
                 </div>
 
-                {/* কোন কনটেস্টে অংশ নেবে */}
                 <div>
                   <label className="text-[11px] font-semibold text-zinc-400 block mb-1">কনটেস্ট বাছাই</label>
                   <select
@@ -876,7 +964,6 @@ export default function HomeExperience({
                 </div>
               </div>
 
-              {/* AI Generated টিকবক্স */}
               <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-2">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -916,7 +1003,7 @@ export default function HomeExperience({
       )}
 
       {/* ==================================================== */}
-      {/* 6. CINEMATIC FULLSCREEN LIGHTBOX MODAL               */}
+      {/* 6. FULLSCREEN LIGHTBOX MODAL                         */}
       {/* ==================================================== */}
       {previewPhoto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-2xl p-4 md:p-8 animate-in fade-in duration-200">
@@ -955,18 +1042,24 @@ export default function HomeExperience({
                 <h2 className="text-xl md:text-2xl font-black text-white">{previewPhoto.title}</h2>
 
                 <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-zinc-900/60 border border-zinc-800">
-                  <img
-                    src={previewPhoto.user.avatarUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150"}
-                    alt={previewPhoto.user.name}
-                    className="w-11 h-11 rounded-full object-cover border border-amber-400"
-                  />
+                  {previewPhoto.user?.avatarUrl ? (
+                    <img
+                      src={previewPhoto.user.avatarUrl}
+                      alt={previewPhoto.user.name}
+                      className="w-11 h-11 rounded-full object-cover border border-amber-400"
+                    />
+                  ) : (
+                    <div className="w-11 h-11 rounded-full bg-amber-400 text-black font-extrabold text-base flex items-center justify-center">
+                      {previewPhoto.user?.name ? previewPhoto.user.name.charAt(0).toUpperCase() : "U"}
+                    </div>
+                  )}
                   <div>
                     <div className="flex items-center gap-1.5 font-bold text-sm text-white">
-                      <span>{previewPhoto.user.name}</span>
-                      {previewPhoto.user.badge === "BLUE_VERIFIED" && <CheckCircle className="w-4 h-4 text-sky-400" />}
-                      {previewPhoto.user.badge === "FIRE_CREATOR" && <Flame className="w-4 h-4 text-orange-500 fill-orange-500" />}
+                      <span>{previewPhoto.user?.name}</span>
+                      {previewPhoto.user?.badge === "BLUE_VERIFIED" && <CheckCircle className="w-4 h-4 text-sky-400" />}
+                      {previewPhoto.user?.badge === "FIRE_CREATOR" && <Flame className="w-4 h-4 text-orange-500 fill-orange-500" />}
                     </div>
-                    <span className="text-xs text-zinc-400">{previewPhoto.user.location || "Bangladesh"}</span>
+                    <span className="text-xs text-zinc-400">{previewPhoto.user?.location || "Bangladesh"}</span>
                   </div>
                 </div>
 
@@ -1129,7 +1222,7 @@ export default function HomeExperience({
       )}
 
       {/* ==================================================== */}
-      {/* 8. FULLSCREEN VIEWING PAYMENT PROOF MODAL            */}
+      {/* 8. FULLSCREEN PAYMENT PROOF MODAL                    */}
       {/* ==================================================== */}
       {viewingProof && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-xl p-4">

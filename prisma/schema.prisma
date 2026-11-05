@@ -193,6 +193,7 @@ model Photo {
   user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   title           String
+  imageUrl        String?         @db.Text 
   description     String?
   category        String          @default("Nature")
   aspectRatio     AspectRatio     @default(RATIO_16_9)
