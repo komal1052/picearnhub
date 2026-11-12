@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import {
+  Camera,
   Trophy,
   Flame,
   CheckCircle,
@@ -20,20 +22,40 @@ import {
   Edit3,
   Phone,
   MapPin,
-  Camera,
   Maximize2,
   UploadCloud,
   PlusCircle,
   ChevronLeft,
   ChevronRight,
-  Image as ImageIcon
+  Mail,
+  MessageCircle,
+  Search,
+  Bell,
+  Home as HomeIcon,
+  Award,
+  BarChart3,
+  Gift,
+  HelpCircle,
+  PhoneCall,
+  Clock,
+  Crown,
+  Diamond,
+  ArrowRight,
+  LayoutGrid,
+  Mountain,
+  MoreHorizontal,
+  Plus,
+  Users
 } from "lucide-react";
 import SocialBar from "./SocialBar";
+import { t } from "@/lib/translations";
+import { toBengaliNumber, toBengaliDate } from "@/lib/formatters";
 
 interface HomeExperienceProps {
   contests: any[];
   photos: any[];
   announcements: any[];
+  payoutProofs?: any[];
   winnerPhoto: any;
 }
 
@@ -41,23 +63,23 @@ export default function HomeExperience({
   contests,
   photos: initialPhotos,
   announcements,
+  payoutProofs = [],
 }: HomeExperienceProps) {
-  const [activeFilter, setActiveFilter] = useState<"ALL" | "16:9" | "9:16" | "FREE" | "AI">("ALL");
+  const [activeNavTab, setActiveNavTab] = useState("home");
+  const [activeFilter, setActiveFilter] = useState<"ALL" | "16:9" | "9:16" | "FREE" | "AI" | "WALLPAPER">("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
   const [photoList, setPhotoList] = useState(initialPhotos);
   const [mounted, setMounted] = useState(false);
 
-  // ====================================================
-  // অটোমেটিক মাল্টি-পিকচার স্লাইডার স্টেট
-  // ====================================================
+  // ডাইনামিক হিরো স্লাইডার (শীর্ষ ৫টি ছবি)
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
-  const heroSlides = photoList.length > 0 ? photoList.slice(0, 5) : []; // সেরা ৫টি ছবি স্লাইডারে থাকবে
+  const heroSlides = photoList.length > 0 ? photoList.slice(0, 5) : [];
 
-  // প্রতি ৫ সেকেন্ড পর পর ছবি অটোমেটিক স্লাইড হবে
   useEffect(() => {
     if (heroSlides.length <= 1) return;
     const interval = setInterval(() => {
       setCurrentSlideIndex((prev) => (prev + 1) % heroSlides.length);
-    }, 5000); // ৫ সেকেন্ড পর পর স্লাইড
+    }, 5000);
     return () => clearInterval(interval);
   }, [heroSlides.length]);
 
@@ -73,13 +95,14 @@ export default function HomeExperience({
 
   // সাইডবার ট্যাব
   const [sidebarTab, setSidebarTab] = useState<"NOTICES" | "PROOFS">("NOTICES");
-  const [proofs, setProofs] = useState<any[]>([]);
+  const [proofs, setProofs] = useState<any[]>(payoutProofs);
   const [viewingProof, setViewingProof] = useState<any | null>(null);
 
-  // Full Screen Preview Modal State
+  // মোডালসমূহ
   const [previewPhoto, setPreviewPhoto] = useState<any | null>(null);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
 
-  // User State
+  // ইউজার অথ স্টেট
   const [currentUser, setCurrentUser] = useState<any | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"LOGIN" | "REGISTER">("REGISTER");
@@ -88,7 +111,7 @@ export default function HomeExperience({
   const [authPassword, setAuthPassword] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
 
-  // Profile Edit Modal States
+  // প্রোফাইল এডিটর স্টেট
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [profileName, setProfileName] = useState("");
   const [profilePhone, setProfilePhone] = useState("");
@@ -98,7 +121,7 @@ export default function HomeExperience({
   const [profileLoading, setProfileLoading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
-  // Photo Upload Modal States
+  // ফটো আপলোড স্টেট
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [uploadTitle, setUploadTitle] = useState("");
   const [uploadCategory, setUploadCategory] = useState("Nature");
@@ -109,12 +132,12 @@ export default function HomeExperience({
   const [uploadLoading, setUploadLoading] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
-  // Voting Modal States
+  // ভোটিং স্টেট
   const [votingPhoto, setVotingPhoto] = useState<any | null>(null);
   const [voteCountdown, setVoteCountdown] = useState(6);
   const [canConfirmVote, setCanConfirmVote] = useState(false);
 
-  // Download Modal States
+  // ডাউনলোড স্টেট
   const [downloadPhoto, setDownloadPhoto] = useState<any | null>(null);
   const [selectedTier, setSelectedTier] = useState<"720P_WM" | "720P_CLEAN" | "1080P" | "2K">("720P_WM");
   const [unlockStep, setUnlockStep] = useState(1);
@@ -124,13 +147,15 @@ export default function HomeExperience({
 
   useEffect(() => {
     setMounted(true);
-    fetch("/api/admin/proofs")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.proofs) setProofs(data.proofs);
-      })
-      .catch(() => {});
-  }, []);
+    if (proofs.length === 0) {
+      fetch("/api/admin/proofs")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.proofs) setProofs(data.proofs);
+        })
+        .catch(() => {});
+    }
+  }, [proofs.length]);
 
   const triggerAdsterraDirectLink = () => {
     const directLink = process.env.NEXT_PUBLIC_ADSTERRA_DIRECT_LINK;
@@ -139,7 +164,6 @@ export default function HomeExperience({
     }
   };
 
-  // Voting Timer
   useEffect(() => {
     if (!votingPhoto) return;
     setVoteCountdown(6);
@@ -160,7 +184,6 @@ export default function HomeExperience({
     return () => clearInterval(timer);
   }, [votingPhoto]);
 
-  // Download Timer
   useEffect(() => {
     if (!isVerifyingDownload) return;
     setUnlockCountdown(6);
@@ -185,18 +208,18 @@ export default function HomeExperience({
     if (!votingPhoto) return;
     setPhotoList((prev) =>
       prev.map((p) =>
-        p.id === votingPhoto.id ? { ...p, voteCount: p.voteCount + 1, hasVoted: true } : p
+        p.id === votingPhoto.id ? { ...p, voteCount: (p.voteCount || 0) + 1, hasVoted: true } : p
       )
     );
     if (previewPhoto && previewPhoto.id === votingPhoto.id) {
-      setPreviewPhoto((prev: any) => ({ ...prev, voteCount: prev.voteCount + 1, hasVoted: true }));
+      setPreviewPhoto((prev: any) => ({ ...prev, voteCount: (prev.voteCount || 0) + 1, hasVoted: true }));
     }
     setVotingPhoto(null);
   };
 
   const handleSkipVoteWithPoints = () => {
     if (!currentUser || currentUser.pointsBalance < 2) {
-      alert("Please log in or earn points to skip ads!");
+      alert("অ্যাড স্কিপ করতে অনুগ্রহ করে পর্যাপ্ত পয়েন্ট অর্জন করুন!");
       return;
     }
     setCurrentUser((prev: any) => ({ ...prev, pointsBalance: prev.pointsBalance - 2 }));
@@ -222,12 +245,12 @@ export default function HomeExperience({
         setAuthName("");
         setAuthEmail("");
         setAuthPassword("");
-        alert(authMode === "REGISTER" ? "Account created! 50 Points awarded 🎉" : "Logged in successfully!");
+        alert(authMode === "REGISTER" ? "একাউন্ট সফলভাবে তৈরি হয়েছে এবং ৫০ পয়েন্ট বোনাস যুক্ত হয়েছে! 🎉" : "সফলভাবে লগইন হয়েছে!");
       } else {
         alert(data.error);
       }
     } catch {
-      alert("Network error.");
+      alert("নেটওয়ার্ক সমস্যা। আবার চেষ্টা করুন।");
     } finally {
       setAuthLoading(false);
     }
@@ -238,7 +261,7 @@ export default function HomeExperience({
     setProfileName(currentUser.name || "");
     setProfilePhone(currentUser.phone || "");
     setProfileBio(currentUser.bio || "");
-    setProfileLocation(currentUser.location || "Dhaka, Bangladesh");
+    setProfileLocation(currentUser.location || "ঢাকা, বাংলাদেশ");
     setProfileAvatar(currentUser.avatarUrl || "");
     setIsProfileModalOpen(true);
   };
@@ -294,7 +317,7 @@ export default function HomeExperience({
         alert(data.error);
       }
     } catch {
-      alert("Failed to update profile.");
+      alert("প্রোফাইল আপডেট ব্যর্থ হয়েছে।");
     } finally {
       setProfileLoading(false);
     }
@@ -335,7 +358,7 @@ export default function HomeExperience({
   const handlePhotoSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) {
-      alert("ছবি জমা দিতে অনুগ্রহ করে প্রথমে লগইন করুন!");
+      alert("ছবি জমা দিতে অনুগ্রহ করে প্রথমে একাউন্টে লগইন করুন!");
       setIsUploadModalOpen(false);
       setIsAuthModalOpen(true);
       return;
@@ -391,619 +414,1035 @@ export default function HomeExperience({
     if (photo.title?.includes("Rickshaw")) return "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1600";
     if (photo.title?.includes("Cyberpunk")) return "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1600";
     if (photo.title?.includes("Tiger")) return "https://images.unsplash.com/photo-1561731216-c3a4d99437d5?w=1600";
-    return photo.imageUrl || "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1600";
+    return "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1600";
   };
 
+  // সার্চ ও ফিল্টার
   const filteredPhotos = photoList.filter((p) => {
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchTitle = p.title?.toLowerCase().includes(q);
+      const matchAuthor = p.user?.name?.toLowerCase().includes(q);
+      const matchCategory = p.category?.toLowerCase().includes(q);
+      if (!matchTitle && !matchAuthor && !matchCategory) return false;
+    }
+
     if (activeFilter === "16:9") return p.aspectRatio === "RATIO_16_9";
     if (activeFilter === "9:16") return p.aspectRatio === "RATIO_9_16";
     if (activeFilter === "FREE") return p.isFree;
     if (activeFilter === "AI") return p.isAiGenerated;
+    if (activeFilter === "WALLPAPER") return p.category === "Wallpaper";
     return true;
   });
 
-  // বর্তমান স্লাইডের ছবি ও তথ্য
   const activeHeroPhoto = heroSlides[currentSlideIndex] || heroSlides[0];
 
+  // লিডারবোর্ড র‍্যাংকিং গণনা
+  const leaderboardCreators = Array.from(
+    photoList.reduce((acc, p) => {
+      const u = p.user;
+      if (!u) return acc;
+      const existing = acc.get(u.id) || {
+        id: u.id,
+        name: u.name,
+        avatarUrl: u.avatarUrl,
+        badge: u.badge,
+        votes: 0,
+      };
+      existing.votes += p.voteCount || 0;
+      acc.set(u.id, existing);
+      return acc;
+    }, new Map<string, any>()).values()
+  ).sort((a: any, b: any) => b.votes - a.votes);
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 md:space-y-8">
       <SocialBar />
 
       {/* ==================================================== */}
-      {/* 0. TOP NAVBAR WITH LOGO, UPLOAD & USER PROFILE       */}
+      {/* ১. টপ হেডার (ব্র্যান্ড, সার্চ, হেল্পলাইন ও ইউজার বার)   */}
       {/* ==================================================== */}
-      <header className="flex justify-between items-center border-b border-zinc-800 pb-4 gap-2">
-        <div className="flex items-center gap-3">
-          <div className="relative w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 text-black flex items-center justify-center font-black shadow-lg shadow-amber-500/20 overflow-hidden">
-            <img
-              src="/logo.png"
-              alt="PicEarnHub Logo"
-              onError={(e) => {
-                e.currentTarget.style.display = "none";
-              }}
-              className="w-full h-full object-cover"
-            />
-            <Camera className="w-5 h-5 stroke-[2.5]" />
-          </div>
-          <div>
-            <h1 className="text-xl md:text-2xl font-black text-white tracking-tight leading-none">
-              PicEarn<span className="text-amber-400">Hub.</span>
-            </h1>
-            <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mt-0.5">
-              Photo Contests & Digital Rewards
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          <button
-            onClick={() => {
-              if (!currentUser) {
-                alert("ছবি আপলোড করতে অনুগ্রহ করে প্রথমে একাউন্টে লগইন করুন!");
-                setIsAuthModalOpen(true);
-              } else {
-                setIsUploadModalOpen(true);
-              }
-            }}
-            className="py-2 px-3 md:px-4 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black font-black text-xs flex items-center gap-1.5 transition-transform active:scale-95 shadow-lg shadow-amber-500/20"
-          >
-            <PlusCircle className="w-4 h-4 stroke-[2.5]" />
-            <span>ছবি জমা দিন</span>
-          </button>
-
-          {currentUser ? (
-            <div className="flex items-center gap-2">
-              <div className="hidden sm:flex items-center gap-1 px-3 py-1.5 rounded-full bg-zinc-900 border border-zinc-800 text-amber-400 text-xs font-bold">
-                <Coins className="w-4 h-4" />
-                <span>{currentUser.pointsBalance} Pts</span>
+      <header className="bg-white border-b border-brand-border sticky top-0 z-40 shadow-sm">
+        <div className="max-w-[1440px] mx-auto px-4 md:px-8 h-18 py-2.5 flex items-center justify-between gap-3">
+          
+          {/* ব্র্যান্ড লোগো */}
+          <div className="flex items-center gap-3 shrink-0">
+            <Link href="/" className="flex items-center gap-2.5 group">
+              <div className="w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-gradient-to-tr from-brand-deep to-brand-purple text-white flex items-center justify-center font-black shadow-lg shadow-brand-purple/25 transition-transform group-hover:scale-105 overflow-hidden">
+                <img
+                  src="/logo.png"
+                  alt="PicEarnHub"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                  }}
+                  className="w-full h-full object-cover"
+                />
+                <Camera className="w-5 h-5 md:w-6 md:h-6 stroke-[2.5]" />
               </div>
+              <div className="flex flex-col">
+                <span className="text-xl md:text-2xl font-black text-brand-text tracking-tight leading-none">
+                  PicEarn<span className="text-brand-purple">Hub</span>
+                </span>
+                <span className="text-[10px] text-brand-muted font-bold tracking-normal hidden sm:inline-block mt-0.5">
+                  {t.brand.tagline}
+                </span>
+              </div>
+            </Link>
+          </div>
 
-              <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 pl-2 pr-3 py-1.5 rounded-xl">
-                {currentUser.avatarUrl ? (
-                  <img
-                    src={currentUser.avatarUrl}
-                    alt={currentUser.name}
-                    className="w-6 h-6 rounded-full object-cover border border-amber-400"
-                  />
-                ) : (
-                  <div className="w-6 h-6 rounded-full bg-amber-400 text-black font-extrabold text-xs flex items-center justify-center">
-                    {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : "U"}
+          {/* ইমেইল ও হোয়াটসঅ্যাপ হেল্পলাইন পিল (ডেস্কটপ) */}
+          <div className="hidden xl:flex items-center gap-2.5 shrink-0">
+            <a
+              href="mailto:picearnhub@gmail.com"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-50 hover:bg-slate-100 border border-brand-border text-xs text-brand-text font-medium transition-colors"
+              title={t.header.emailHelp}
+            >
+              <Mail className="w-3.5 h-3.5 text-brand-purple" />
+              <span className="font-mono text-[11px]">picearnhub@gmail.com</span>
+            </a>
+
+            <a
+              href="https://wa.me/8801700000000"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-xs text-emerald-700 font-bold transition-colors"
+            >
+              <MessageCircle className="w-3.5 h-3.5 fill-emerald-500 text-emerald-500" />
+              <span>{t.header.whatsappHelp}</span>
+            </a>
+          </div>
+
+          {/* সার্চ ফিল্ড (ডেস্কটপ) */}
+          <div className="hidden md:flex flex-1 max-w-md mx-2">
+            <div className="relative w-full">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={t.header.searchPlaceholder}
+                className="w-full bg-slate-50 border border-brand-border rounded-full py-2 pl-10 pr-4 text-xs text-brand-text placeholder-brand-muted focus:bg-white focus:outline-none focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/10 transition-all font-sans"
+              />
+            </div>
+          </div>
+
+          {/* ডানপাশের বাটন ও ইউজার প্রোফাইল */}
+          <div className="flex items-center gap-2 md:gap-3">
+            
+            {/* মোবাইল হেল্পলাইন শর্টকাট */}
+            <div className="flex lg:hidden items-center gap-1.5">
+              <a
+                href="mailto:picearnhub@gmail.com"
+                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-brand-purple"
+                title={t.header.emailHelp}
+              >
+                <Mail className="w-4 h-4" />
+              </a>
+              <a
+                href="https://wa.me/8801700000000"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600"
+                title={t.header.whatsappHelp}
+              >
+                <MessageCircle className="w-4 h-4" />
+              </a>
+            </div>
+
+            {/* পয়েন্ট ব্যাজ */}
+            <div className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold shadow-sm">
+              <Coins className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
+              <span className="font-bold">{toBengaliNumber(currentUser?.pointsBalance ?? 50)}</span>
+              <span className="text-[10px] text-amber-700 font-extrabold">{t.header.pointsTag}</span>
+            </div>
+
+            {/* ছবি জমা দিন বাটন (ডেস্কটপ) */}
+            <button
+              onClick={() => {
+                if (!currentUser) {
+                  setIsAuthModalOpen(true);
+                } else {
+                  setIsUploadModalOpen(true);
+                }
+              }}
+              className="hidden sm:flex items-center gap-1.5 px-4 py-2 rounded-full bg-gradient-to-r from-brand-purple to-brand-deep hover:opacity-95 text-white font-bold text-xs shadow-md shadow-brand-purple/30 transition-transform active:scale-95"
+            >
+              <PlusCircle className="w-4 h-4 stroke-[2.5]" />
+              <span>{t.header.uploadBtn}</span>
+            </button>
+
+            {/* ইউজার ড্রপডাউন / লগইন বাটন */}
+            {currentUser ? (
+              <div className="relative">
+                <button
+                  onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                  className="flex items-center gap-2 p-1 rounded-full border border-brand-border hover:border-brand-purple transition-colors bg-white"
+                >
+                  {currentUser.avatarUrl ? (
+                    <img
+                      src={currentUser.avatarUrl}
+                      alt={currentUser.name}
+                      className="w-8 h-8 rounded-full object-cover border border-brand-purple"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-brand-purple text-white font-black text-xs flex items-center justify-center">
+                      {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : "U"}
+                    </div>
+                  )}
+                </button>
+
+                {profileDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-brand-border p-2 z-50 animate-in fade-in duration-150">
+                    <div className="px-3 py-2 border-b border-brand-border">
+                      <p className="text-xs font-bold text-brand-text truncate">{currentUser.name}</p>
+                      <p className="text-[10px] text-brand-muted truncate font-mono">{currentUser.email}</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setProfileDropdownOpen(false);
+                        handleOpenEditProfile();
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-brand-text hover:bg-slate-50 transition-colors text-left"
+                    >
+                      <Edit3 className="w-3.5 h-3.5 text-brand-purple" />
+                      <span>{t.header.editProfile}</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setProfileDropdownOpen(false);
+                        setCurrentUser(null);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors text-left"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>{t.header.logout}</span>
+                    </button>
                   </div>
                 )}
-                <span className="text-xs font-bold text-white max-w-[100px] truncate">{currentUser.name}</span>
-
-                <button
-                  onClick={handleOpenEditProfile}
-                  className="p-1 rounded-md text-zinc-400 hover:text-amber-400 hover:bg-zinc-800 transition-colors"
-                  title="Edit Profile"
-                >
-                  <Edit3 className="w-3.5 h-3.5" />
-                </button>
-
-                <button
-                  onClick={() => setCurrentUser(null)}
-                  className="p-1 rounded-md text-zinc-500 hover:text-rose-400 hover:bg-zinc-800 transition-colors"
-                  title="Logout"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                </button>
               </div>
-            </div>
-          ) : (
-            <button
-              onClick={() => setIsAuthModalOpen(true)}
-              className="py-2 px-3.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 font-bold text-xs transition-colors"
-            >
-              সাইন ইন
-            </button>
-          )}
+            ) : (
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="px-4 py-2 rounded-full bg-slate-900 hover:bg-black text-white font-bold text-xs transition-transform active:scale-95 shadow-sm"
+              >
+                {t.header.signIn}
+              </button>
+            )}
+
+          </div>
         </div>
       </header>
 
       {/* ==================================================== */}
-      {/* 1. HERO SECTION: অটো মাল্টি-পিকচার স্লাইডার           */}
+      {/* ২. মেইন ন্যাভিগেশন রিবন (ডেস্কটপ মেনু)                 */}
       {/* ==================================================== */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-        {/* Left (8 Cols): অটোমেটিক স্লাইডার */}
-        <div
-          onClick={() => {
-            if (activeHeroPhoto) setPreviewPhoto(activeHeroPhoto);
-          }}
-          className="lg:col-span-8 relative rounded-3xl overflow-hidden bg-zinc-950 border border-zinc-800 shadow-2xl h-[420px] group flex flex-col justify-end p-6 cursor-pointer"
-        >
-          {/* স্লাইডারের ছবি (স্মুথ ফেড ট্রানজিশন সহ) */}
-          {activeHeroPhoto && (
-            <img
-              key={activeHeroPhoto.id}
-              src={getPhotoUrl(activeHeroPhoto)}
-              alt={activeHeroPhoto.title}
-              className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-all duration-700 animate-in fade-in zoom-in-95"
-            />
-          )}
-
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-transparent to-transparent" />
-
-          {/* টপ ব্যাজ */}
-          <div className="absolute top-5 left-5 z-10 flex items-center gap-2 bg-amber-400 text-black px-3.5 py-1.5 rounded-full font-black text-xs uppercase tracking-wider shadow-lg">
-            <Trophy className="w-4 h-4" />
-            <span>Featured Contest Entry &bull; Top Rated</span>
-          </div>
-
-          {/* ফুল ভিউ আইকন */}
-          <div className="absolute top-5 right-5 z-10 bg-black/60 backdrop-blur-md p-2 rounded-xl text-white opacity-0 group-hover:opacity-100 transition-opacity">
-            <Maximize2 className="w-4 h-4" />
-          </div>
-
-          {/* স্লাইডার ম্যানুয়াল কন্ট্রোল বাটন (< এবং >) */}
-          <button
-            onClick={handlePrevSlide}
-            className="absolute left-3 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-black/60 hover:bg-black/90 text-white border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity"
-            title="Previous Picture"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <button
-            onClick={handleNextSlide}
-            className="absolute right-3 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-black/60 hover:bg-black/90 text-white border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity"
-            title="Next Picture"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-
-          {/* স্লাইডারের টেক্সট ও ফটোগ্রাফার ডিটেইলস */}
-          {activeHeroPhoto && (
-            <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
-              <div className="space-y-2">
-                <span className="text-amber-400 text-xs font-bold uppercase tracking-wider">
-                  Category: {activeHeroPhoto.category || "Featured"}
-                </span>
-                <h2 className="text-2xl md:text-3xl font-black text-white leading-tight drop-shadow-md">
-                  {activeHeroPhoto.title}
-                </h2>
-
-                <div className="flex items-center gap-3 bg-black/70 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-white/10 w-fit">
-                  {activeHeroPhoto.user?.avatarUrl ? (
-                    <img
-                      src={activeHeroPhoto.user.avatarUrl}
-                      alt={activeHeroPhoto.user.name}
-                      className="w-10 h-10 rounded-full object-cover border border-amber-400"
-                    />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-amber-400 text-black font-extrabold text-sm flex items-center justify-center">
-                      {activeHeroPhoto.user?.name ? activeHeroPhoto.user.name.charAt(0).toUpperCase() : "U"}
-                    </div>
-                  )}
-                  <div>
-                    <div className="flex items-center gap-1.5 font-bold text-sm text-white">
-                      <span>{activeHeroPhoto.user?.name}</span>
-                      {activeHeroPhoto.user?.badge === "BLUE_VERIFIED" && <CheckCircle className="w-4 h-4 text-sky-400" />}
-                      {activeHeroPhoto.user?.badge === "FIRE_CREATOR" && <Flame className="w-4 h-4 text-orange-500 fill-orange-500" />}
-                    </div>
-                    <span className="text-xs text-zinc-400">{activeHeroPhoto.user?.location || "Bangladesh"}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2.5 bg-zinc-900/90 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-zinc-700 text-white self-start md:self-end">
-                <Heart className="w-5 h-5 text-rose-500 fill-rose-500" />
-                <div>
-                  <div className="text-[10px] text-zinc-400 uppercase font-semibold">Total Votes</div>
-                  <div className="font-mono font-black text-base leading-none">{activeHeroPhoto.voteCount} Votes</div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* নিচে স্লাইড ইন্ডিকেটর ডটস */}
-          <div className="absolute bottom-3 right-6 flex gap-1.5 z-20">
-            {heroSlides.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setCurrentSlideIndex(idx);
-                }}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  idx === currentSlideIndex ? "w-6 bg-amber-400" : "w-2 bg-white/40 hover:bg-white/70"
-                }`}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Right (4 Cols): সাইডবার (বুলেটিন ও উইথড্র প্রুফ) */}
-        <div className="lg:col-span-4 rounded-3xl bg-zinc-950 border border-zinc-800 p-5 flex flex-col justify-between shadow-2xl space-y-4">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setSidebarTab("NOTICES")}
-                  className={`text-xs font-bold pb-1 transition-colors ${
-                    sidebarTab === "NOTICES"
-                      ? "text-amber-400 border-b-2 border-amber-400"
-                      : "text-zinc-500 hover:text-zinc-300"
-                  }`}
-                >
-                  📢 বুলেটিন (Notices)
-                </button>
-                <button
-                  onClick={() => setSidebarTab("PROOFS")}
-                  className={`text-xs font-bold pb-1 transition-colors flex items-center gap-1 ${
-                    sidebarTab === "PROOFS"
-                      ? "text-emerald-400 border-b-2 border-emerald-400"
-                      : "text-zinc-500 hover:text-zinc-300"
-                  }`}
-                >
-                  <span>💸 পেমেন্ট প্রুফ</span>
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                </button>
-              </div>
-              <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-zinc-900 text-zinc-400 border border-zinc-800">
-                LIVE
-              </span>
-            </div>
-
-            {sidebarTab === "NOTICES" ? (
-              <div className="space-y-2.5 divide-y divide-zinc-900">
-                {announcements.map((a) => (
-                  <div key={a.id} className="pt-2 space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-amber-400/10 text-amber-400 border border-amber-400/20">
-                        {a.badgeTag}
-                      </span>
-                      <span className="text-[11px] text-zinc-500">Notice</span>
-                    </div>
-                    <h4 className="text-xs font-semibold text-zinc-200 leading-snug">{a.title}</h4>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1 scrollbar-none">
-                {proofs.length === 0 ? (
-                  <div className="text-center py-6 text-zinc-500 text-xs">
-                    এখনো কোনো প্রুফ আপলোড করা হয়নি।
-                  </div>
-                ) : (
-                  proofs.map((proof) => (
-                    <div
-                      key={proof.id}
-                      onClick={() => setViewingProof(proof)}
-                      className="p-2.5 rounded-xl bg-zinc-900/60 border border-zinc-800 hover:border-emerald-500/40 transition-colors cursor-pointer flex items-center justify-between gap-3 group"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <img
-                          src={proof.proofImage}
-                          alt="bKash Proof"
-                          className="w-11 h-11 rounded-lg object-cover border border-zinc-700 group-hover:scale-105 transition-transform"
-                        />
-                        <div>
-                          <div className="text-xs font-bold text-white">{proof.userName}</div>
-                          <div className="text-[10px] text-zinc-400">
-                            {proof.gateway} &bull; {new Date(proof.createdAt).toLocaleDateString()}
-                          </div>
-                        </div>
-                      </div>
-                      <span className="text-emerald-400 font-bold text-xs font-mono">{proof.amount}</span>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
-
-          <div
-            onClick={triggerAdsterraDirectLink}
-            className="p-3 rounded-2xl bg-zinc-900/40 border border-zinc-800/80 text-center space-y-1 cursor-pointer hover:border-amber-400/40 transition-colors"
-          >
-            <div className="flex items-center justify-between text-[9px] uppercase tracking-widest text-zinc-500">
-              <span>Sponsored Offer</span>
-              <ExternalLink className="w-3 h-3 text-amber-400" />
-            </div>
-            <div className="h-28 bg-zinc-900 rounded-xl flex items-center justify-center text-xs text-zinc-500 font-bold border border-dashed border-zinc-800">
-              [Click to View Sponsor &bull; 300x250]
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ==================================================== */}
-      {/* 2. ACTIVE CONTESTS TICKER                            */}
-      {/* ==================================================== */}
-      <section className="space-y-3">
-        <h2 className="text-base font-extrabold text-white flex items-center gap-2">
-          <Trophy className="w-4 h-4 text-amber-400" />
-          <span>Active Contests & Prize Pools (চলমান কনটেস্ট)</span>
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {contests.map((c) => (
-            <div
-              key={c.id}
-              className="p-4 rounded-2xl bg-zinc-950 border border-zinc-800/80 hover:border-amber-400/50 transition-colors space-y-2 flex flex-col justify-between"
-            >
-              <div className="flex justify-between items-center">
-                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-zinc-900 text-amber-400 border border-zinc-800">
-                  {c.tier}
-                </span>
-                <span className="text-emerald-400 font-mono font-black text-sm">
-                  ${Number(c.prizePool).toFixed(2)} Prize
-                </span>
-              </div>
-              <h3 className="font-extrabold text-xs text-zinc-100">{c.title}</h3>
-              <div className="flex items-center gap-1.5 text-[11px] text-zinc-500 pt-2 border-t border-zinc-900">
-                <Calendar className="w-3 h-3 text-amber-400" />
-                <span>Ends: {mounted ? new Date(c.endTime).toLocaleDateString() : "Active"}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ==================================================== */}
-      {/* 3. FILTER PILLS                                      */}
-      {/* ==================================================== */}
-      <section className="space-y-4">
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none text-xs font-bold">
-          {(["ALL", "16:9", "9:16", "FREE", "AI"] as const).map((tab) => (
+      <nav className="bg-white/90 backdrop-blur-md border-b border-brand-border sticky top-18 z-30 hidden md:block">
+        <div className="max-w-[1440px] mx-auto px-4 md:px-8 h-12 flex items-center justify-between">
+          <div className="flex items-center gap-1 lg:gap-2 text-xs font-bold text-brand-muted">
             <button
-              key={tab}
-              onClick={() => setActiveFilter(tab)}
-              className={`px-4 py-2 rounded-xl transition-all whitespace-nowrap ${
-                activeFilter === tab
-                  ? "bg-amber-400 text-black shadow-lg shadow-amber-400/20 font-black"
-                  : "bg-zinc-950 text-zinc-400 hover:text-white border border-zinc-800 hover:bg-zinc-900"
+              onClick={() => setActiveNavTab("home")}
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full transition-all ${
+                activeNavTab === "home"
+                  ? "bg-brand-purple text-white shadow-md shadow-brand-purple/20 font-bold"
+                  : "hover:text-brand-purple hover:bg-slate-50"
               }`}
             >
-              {tab === "ALL" && "🔥 All Items (সব ছবি)"}
-              {tab === "16:9" && "🖥 Landscape (16:9)"}
-              {tab === "9:16" && "📱 Portrait (9:16)"}
-              {tab === "FREE" && "🆓 Free (720p)"}
-              {tab === "AI" && "✨ AI Generated Art"}
+              <HomeIcon className="w-3.5 h-3.5" />
+              <span>{t.nav.home}</span>
             </button>
-          ))}
-        </div>
 
-        {/* ==================================================== */}
-        {/* 4. GALLERY PHOTO GRID                                */}
-        {/* ==================================================== */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-          {filteredPhotos.map((photo) => (
-            <div
-              key={photo.id}
-              className="group rounded-2xl overflow-hidden bg-zinc-950 border border-zinc-800/80 hover:border-zinc-700 transition-all duration-300 flex flex-col justify-between shadow-xl"
+            <button
+              onClick={() => {
+                setActiveNavTab("contests");
+                document.getElementById("ongoing-contests")?.scrollIntoView({ behavior: "smooth" });
+              }}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-full hover:text-brand-purple hover:bg-slate-50 transition-colors"
             >
-              <div
-                onClick={() => setPreviewPhoto(photo)}
-                className="relative cursor-pointer"
-              >
-                <div className="absolute top-2.5 left-2.5 right-2.5 z-10 flex items-center justify-between pointer-events-none">
-                  <div className="flex gap-1.5">
-                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-md text-zinc-300 border border-white/10 uppercase">
-                      {photo.aspectRatio === "RATIO_9_16" ? "9:16" : "16:9"}
-                    </span>
-                    {photo.isAiGenerated && (
-                      <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-violet-600/90 text-white shadow-md">
-                        <Sparkles className="w-2.5 h-2.5" /> AI Art
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-amber-400 text-black uppercase">
-                    HD / 2K
-                  </span>
-                </div>
+              <Trophy className="w-3.5 h-3.5" />
+              <span>{t.nav.contests}</span>
+            </button>
 
-                <div
-                  className={`relative w-full bg-zinc-900 overflow-hidden ${
-                    photo.aspectRatio === "RATIO_9_16" ? "aspect-[9/16]" : "aspect-[16/9]"
-                  }`}
-                >
-                  <img
-                    src={getPhotoUrl(photo)}
-                    alt={photo.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <span className="bg-black/80 text-white text-xs font-bold px-3 py-1.5 rounded-xl border border-white/20 flex items-center gap-1.5">
-                      <Maximize2 className="w-3.5 h-3.5" />
-                      <span>বড় করে দেখুন (Full View)</span>
-                    </span>
-                  </div>
-                </div>
+            <button
+              onClick={() => {
+                setActiveNavTab("gallery");
+                document.getElementById("trending-gallery")?.scrollIntoView({ behavior: "smooth" });
+              }}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-full hover:text-brand-purple hover:bg-slate-50 transition-colors"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>{t.nav.gallery}</span>
+            </button>
+
+            <Link
+              href="/hall-of-fame"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:text-brand-purple hover:bg-slate-50 transition-colors"
+            >
+              <Award className="w-3.5 h-3.5" />
+              <span>{t.nav.winners}</span>
+            </Link>
+
+            <button
+              onClick={() => {
+                document.getElementById("leaderboard-section")?.scrollIntoView({ behavior: "smooth" });
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:text-brand-purple hover:bg-slate-50 transition-colors"
+            >
+              <BarChart3 className="w-3.5 h-3.5" />
+              <span>{t.nav.leaderboard}</span>
+            </button>
+
+            <button
+              onClick={() => {
+                alert("রিওয়ার্ড কেন্দ্র: প্রতিদিন লগইন করে +১০ পয়েন্ট বা স্পন্সর ভিডিও দেখে বাড়তি পয়েন্ট জিতে নিন!");
+              }}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-full hover:text-brand-purple hover:bg-slate-50 transition-colors"
+            >
+              <Gift className="w-3.5 h-3.5" />
+              <span>{t.nav.rewards}</span>
+            </button>
+
+            <Link
+              href="/admin"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:text-brand-purple hover:bg-slate-50 transition-colors text-brand-muted"
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>অ্যাডমিন</span>
+            </Link>
+          </div>
+
+          <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>{t.nav.activeContestTag}</span>
+          </span>
+        </div>
+      </nav>
+
+      {/* ==================================================== */}
+      {/* ৩. হিরো স্লাইডার ও সাইডবার নোটিশ/প্রুফ                 */}
+      {/* ==================================================== */}
+      <div className="max-w-[1440px] mx-auto px-4 md:px-8 space-y-6 md:space-y-8">
+        
+        <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+          
+          {/* ডাইনামিক হিরো স্লাইডার (৮ কলাম) */}
+          <div className="lg:col-span-8">
+            <div
+              onClick={() => {
+                if (activeHeroPhoto) setPreviewPhoto(activeHeroPhoto);
+              }}
+              className="relative rounded-3xl overflow-hidden bg-brand-surface border border-brand-border shadow-xl h-[360px] md:h-[420px] group cursor-pointer flex flex-col justify-end p-6 md:p-8"
+            >
+              {activeHeroPhoto && (
+                <img
+                  key={activeHeroPhoto.id}
+                  src={getPhotoUrl(activeHeroPhoto)}
+                  alt={activeHeroPhoto.title}
+                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-all duration-700 animate-in fade-in"
+                />
+              )}
+
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-transparent to-transparent" />
+
+              {/* টপ ব্যানার ট্যাগ */}
+              <div className="absolute top-5 left-5 z-10 flex items-center gap-2 bg-brand-purple/90 backdrop-blur-md text-white px-3.5 py-1.5 rounded-full font-bold text-xs uppercase tracking-wider shadow-lg">
+                <Trophy className="w-3.5 h-3.5 text-brand-gold" />
+                <span>{t.hero.topContestTag}</span>
               </div>
 
-              <div className="p-3.5 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="max-w-[170px]">
-                    <h3 className="text-xs font-bold text-white truncate">{photo.title}</h3>
-                    <div className="flex items-center gap-1.5 mt-1">
-                      {photo.user?.avatarUrl ? (
+              {/* স্লাইড নেভিগেশন অ্যারো বাটন */}
+              <button
+                onClick={handlePrevSlide}
+                className="absolute left-3 top-1/2 -translate-y-1/2 z-20 p-2.5 rounded-full bg-white/20 hover:bg-white/40 backdrop-blur-md text-white opacity-0 group-hover:opacity-100 transition-opacity active:scale-95"
+                title="পূর্ববর্তী ছবি"
+              >
+                <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
+              </button>
+              <button
+                onClick={handleNextSlide}
+                className="absolute right-3 top-1/2 -translate-y-1/2 z-20 p-2.5 rounded-full bg-white/20 hover:bg-white/40 backdrop-blur-md text-white opacity-0 group-hover:opacity-100 transition-opacity active:scale-95"
+                title="পরবর্তী ছবি"
+              >
+                <ChevronRight className="w-5 h-5 stroke-[2.5]" />
+              </button>
+
+              {/* কনটেন্ট লেয়ার */}
+              {activeHeroPhoto && (
+                <div className="relative z-10 space-y-3 max-w-xl">
+                  <h2 className="text-2xl md:text-4xl font-black text-white leading-tight drop-shadow-md">
+                    {activeHeroPhoto.title}
+                  </h2>
+                  <p className="text-xs md:text-sm text-slate-200 line-clamp-2 leading-relaxed font-normal">
+                    {t.hero.subtitle}
+                  </p>
+
+                  <div className="pt-1">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!currentUser) setIsAuthModalOpen(true);
+                        else setIsUploadModalOpen(true);
+                      }}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-brand-gold hover:bg-amber-400 text-brand-text font-black text-xs shadow-lg shadow-amber-500/30 transition-transform active:scale-95"
+                    >
+                      <span>{t.hero.joinContestBtn}</span>
+                      <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+                    </button>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3 pt-2 text-xs text-slate-300">
+                    <div className="flex items-center gap-1.5 font-bold text-white bg-black/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
+                      {activeHeroPhoto.user?.avatarUrl ? (
                         <img
-                          src={photo.user.avatarUrl}
-                          alt={photo.user.name}
+                          src={activeHeroPhoto.user.avatarUrl}
+                          alt={activeHeroPhoto.user.name}
                           className="w-4 h-4 rounded-full object-cover"
                         />
                       ) : (
-                        <div className="w-4 h-4 rounded-full bg-amber-400 text-black font-extrabold text-[9px] flex items-center justify-center">
-                          {photo.user?.name ? photo.user.name.charAt(0).toUpperCase() : "U"}
+                        <div className="w-4 h-4 rounded-full bg-brand-gold text-brand-text font-black text-[9px] flex items-center justify-center">
+                          {activeHeroPhoto.user?.name?.charAt(0) || "U"}
                         </div>
                       )}
-                      <span className="text-[11px] text-zinc-400 truncate">{photo.user?.name}</span>
-                      {photo.user?.badge === "BLUE_VERIFIED" && (
-                        <CheckCircle className="w-3.5 h-3.5 text-sky-400 flex-shrink-0" />
-                      )}
-                      {photo.user?.badge === "FIRE_CREATOR" && (
-                        <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500 flex-shrink-0" />
-                      )}
+                      <span>{t.hero.byCreator} {activeHeroPhoto.user?.name || "ফটোগ্রাফার"}</span>
+                      {activeHeroPhoto.user?.badge === "BLUE_VERIFIED" && <CheckCircle className="w-3.5 h-3.5 text-sky-400 fill-sky-400/20" />}
+                      {activeHeroPhoto.user?.badge === "FIRE_CREATOR" && <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500" />}
+                    </div>
+
+                    <span>|</span>
+                    <span className="font-semibold">{activeHeroPhoto.category || "প্রকৃতি"} {t.hero.categorySuffix}</span>
+                    <span>|</span>
+                    <div className="flex items-center gap-1 font-bold text-rose-400">
+                      <Heart className="w-3.5 h-3.5 fill-rose-500 text-rose-500" />
+                      <span>{toBengaliNumber(activeHeroPhoto.voteCount || 0)} {t.hero.totalVotes}</span>
                     </div>
                   </div>
+                </div>
+              )}
 
+              {/* স্লাইড পজিশন ডটস */}
+              <div className="absolute bottom-5 right-6 flex gap-1.5 z-20">
+                {heroSlides.map((_, idx) => (
                   <button
-                    onClick={() => setDownloadPhoto(photo)}
-                    className="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white transition-colors border border-zinc-800"
-                    title="Unlock Resolutions"
+                    key={idx}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCurrentSlideIndex(idx);
+                    }}
+                    className={`h-1.5 rounded-full transition-all duration-300 ${
+                      idx === currentSlideIndex ? "w-6 bg-brand-gold" : "w-2 bg-white/40"
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* সাইডবার: নোটিশ বোর্ড ও উইথড্র প্রুফ (৪ কলাম) */}
+          <div className="lg:col-span-4 rounded-3xl bg-white border border-brand-border p-5 flex flex-col justify-between shadow-sm space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between border-b border-brand-border pb-2.5">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setSidebarTab("NOTICES")}
+                    className={`text-xs font-bold pb-1 transition-colors ${
+                      sidebarTab === "NOTICES"
+                        ? "text-brand-purple border-b-2 border-brand-purple"
+                        : "text-brand-muted hover:text-brand-text"
+                    }`}
                   >
-                    <Download className="w-4 h-4" />
+                    {t.sidebar.tabNotices}
+                  </button>
+                  <button
+                    onClick={() => setSidebarTab("PROOFS")}
+                    className={`text-xs font-bold pb-1 transition-colors flex items-center gap-1 ${
+                      sidebarTab === "PROOFS"
+                        ? "text-emerald-600 border-b-2 border-emerald-600"
+                        : "text-brand-muted hover:text-brand-text"
+                    }`}
+                  >
+                    <span>{t.sidebar.tabProofs}</span>
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
                   </button>
                 </div>
 
-                <button
-                  onClick={() => setVotingPhoto(photo)}
-                  disabled={photo.hasVoted}
-                  className={`w-full py-2 px-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-transform active:scale-[0.98] ${
-                    photo.hasVoted
-                      ? "bg-rose-500/15 text-rose-400 border border-rose-500/30 cursor-default"
-                      : "bg-zinc-900 hover:bg-amber-400 hover:text-black text-white border border-zinc-800 shadow-md"
-                  }`}
-                >
-                  <Heart className={`w-3.5 h-3.5 ${photo.hasVoted ? "fill-rose-500 text-rose-500" : ""}`} />
-                  <span>{photo.hasVoted ? "Voted (ভোট সম্পন্ন)" : "Vote Entry (ভোট দিন)"}</span>
-                  <span className="opacity-40">&bull;</span>
-                  <span className="font-mono">{photo.voteCount}</span>
-                </button>
+                {/* পালসিং লাইভ ব্যাজ */}
+                <span className="flex items-center gap-1.5 text-[9px] font-black px-2 py-0.5 rounded-full bg-rose-50 text-rose-500 border border-rose-200 tracking-wider">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-rose-500" />
+                  </span>
+                  <span>{t.sidebar.liveBadge}</span>
+                </span>
               </div>
-            </div>
-          ))}
-        </div>
-      </section>
 
-      {/* ==================================================== */}
-      {/* 5. MODAL: ছবি জমা দেওয়ার মডেল                        */}
-      {/* ==================================================== */}
-      {isUploadModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
-          <div className="bg-zinc-950 border border-zinc-800 rounded-3xl max-w-md w-full p-6 text-white space-y-4 shadow-2xl relative max-h-[90vh] overflow-y-auto scrollbar-none">
-            <div className="flex justify-between items-center border-b border-zinc-800 pb-3">
-              <div className="flex items-center gap-2">
-                <UploadCloud className="w-5 h-5 text-amber-400" />
-                <h3 className="font-extrabold text-sm text-white">কনটেস্টে ছবি জমা দিন (Submit Photo)</h3>
-              </div>
-              <button onClick={() => setIsUploadModalOpen(false)} className="text-zinc-500 hover:text-white">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handlePhotoSubmit} className="space-y-3.5">
-              <div>
-                <input
-                  type="file"
-                  accept="image/*"
-                  ref={photoInputRef}
-                  onChange={handlePhotoFileSelect}
-                  className="hidden"
-                />
-                <div
-                  onClick={() => photoInputRef.current?.click()}
-                  className="border-2 border-dashed border-zinc-800 hover:border-amber-400 rounded-2xl p-4 text-center cursor-pointer bg-zinc-900/40 transition-colors"
-                >
-                  {uploadImageBase64 ? (
-                    <div className="space-y-2">
-                      <img
-                        src={uploadImageBase64}
-                        alt="Upload Preview"
-                        className="max-h-40 mx-auto rounded-xl object-contain"
-                      />
-                      <span className="text-[11px] text-emerald-400 font-bold block">
-                        ✅ ছবি সিলেক্ট হয়েছে (পরিবর্তন করতে ক্লিক করুন)
-                      </span>
+              {sidebarTab === "NOTICES" ? (
+                <div className="space-y-2.5 divide-y divide-slate-100">
+                  {announcements.map((a) => (
+                    <div key={a.id} className="pt-2 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-purple-50 text-brand-purple border border-purple-100">
+                          {a.badgeTag || "নোটিশ"}
+                        </span>
+                        <span className="text-[11px] text-brand-muted">আপডেট</span>
+                      </div>
+                      <h4 className="text-xs font-bold text-brand-text leading-snug">{a.title}</h4>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1 no-scrollbar">
+                  {proofs.length === 0 ? (
+                    <div className="text-center py-6 text-brand-muted text-xs font-medium">
+                      {t.sidebar.noProofs}
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center gap-1.5 py-4">
-                      <UploadCloud className="w-8 h-8 text-amber-400" />
-                      <span className="text-xs font-bold text-zinc-200">
-                        ক্লিক করে আপনার ছবি সিলেক্ট করুন
-                      </span>
-                      <span className="text-[10px] text-zinc-500">ফোন বা পিসি থেকে যেকোনো ছবি</span>
-                    </div>
+                    proofs.map((proof) => (
+                      <div
+                        key={proof.id}
+                        onClick={() => setViewingProof(proof)}
+                        className="p-2.5 rounded-2xl bg-slate-50 border border-slate-100 hover:border-emerald-300 transition-colors cursor-pointer flex items-center justify-between gap-3 group"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <img
+                            src={proof.proofImage}
+                            alt="পেমেন্ট প্রুফ"
+                            className="w-10 h-10 rounded-xl object-cover border border-slate-200 group-hover:scale-105 transition-transform"
+                          />
+                          <div>
+                            <div className="text-xs font-bold text-brand-text">{proof.userName}</div>
+                            <div className="text-[10px] text-brand-muted">
+                              {proof.gateway} &bull; {toBengaliDate(proof.createdAt)}
+                            </div>
+                          </div>
+                        </div>
+                        <span className="text-emerald-600 font-bold text-xs">{proof.amount}</span>
+                      </div>
+                    ))
                   )}
                 </div>
+              )}
+            </div>
+
+            {/* অ্যাডস্টেরা স্পন্সরড অফার স্লট */}
+            <div
+              onClick={triggerAdsterraDirectLink}
+              className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-1 cursor-pointer hover:border-brand-purple/40 transition-colors"
+            >
+              <div className="flex items-center justify-between text-[9px] uppercase tracking-widest text-brand-muted font-bold">
+                <span>{t.sidebar.adTitle}</span>
+                <ExternalLink className="w-3 h-3 text-brand-purple" />
               </div>
-
-              <div>
-                <label className="text-[11px] font-semibold text-zinc-400 block mb-1">
-                  ছবির নাম / টাইটেল (Photo Title)
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="যেমন: Sunset Over Padma River"
-                  value={uploadTitle}
-                  onChange={(e) => setUploadTitle(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
-                />
+              <div className="h-28 bg-white rounded-xl flex flex-col items-center justify-center text-xs text-brand-muted font-bold border border-dashed border-slate-200 space-y-1 shadow-inner">
+                <span className="text-brand-purple font-bold">{t.sidebar.adSubtitle}</span>
+                <span className="text-[10px] text-slate-400">{t.sidebar.adClickNotice}</span>
               </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[11px] font-semibold text-zinc-400 block mb-1">ক্যাটাগরি</label>
-                  <select
-                    value={uploadCategory}
-                    onChange={(e) => setUploadCategory(e.target.value)}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
-                  >
-                    <option value="Nature">Nature (প্রকৃতি)</option>
-                    <option value="Street">Street (রাস্তাঘাট)</option>
-                    <option value="Portrait">Portrait (প্রতিকৃতি)</option>
-                    <option value="Wallpaper">Wallpaper (ওয়ালপেপার)</option>
-                    <option value="Abstract">Abstract (এবস্ট্রাক্ট)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-[11px] font-semibold text-zinc-400 block mb-1">কনটেস্ট বাছাই</label>
-                  <select
-                    value={uploadContestId}
-                    onChange={(e) => setUploadContestId(e.target.value)}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
-                  >
-                    {contests.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.tier} (${c.prizePool})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={uploadIsAi}
-                    onChange={(e) => setUploadIsAi(e.target.checked)}
-                    className="w-4 h-4 rounded bg-zinc-800 border-zinc-700 text-amber-400 focus:ring-0"
-                  />
-                  <span className="text-xs font-bold text-white flex items-center gap-1">
-                    <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>ছবিটি কি AI দিয়ে তৈরি? (Is this AI Art?)</span>
-                  </span>
-                </label>
-
-                {uploadIsAi && (
-                  <input
-                    type="text"
-                    placeholder="কোন AI টুল ব্যবহার করেছেন? (যেমন: Midjourney v6)"
-                    value={uploadAiModel}
-                    onChange={(e) => setUploadAiModel(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-amber-400"
-                  />
-                )}
-              </div>
-
-              <button
-                type="submit"
-                disabled={uploadLoading}
-                className="w-full py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 disabled:opacity-50 text-black font-black text-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 shadow-lg shadow-amber-400/20"
-              >
-                <PlusCircle className="w-4 h-4 stroke-[2.5]" />
-                <span>{uploadLoading ? "আপলোড হচ্ছে..." : "কনটেস্টে জমা দিন (+১৫ পয়েন্ট বোনাস)"}</span>
-              </button>
-            </form>
+            </div>
           </div>
-        </div>
-      )}
+
+        </section>
+
+        {/* ==================================================== */}
+        {/* ৪. চলমান কনটেস্টসমূহ ও ক্যাটাগরি ম্যাট্রিক্স            */}
+        {/* ==================================================== */}
+        <section id="ongoing-contests" className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          
+          {/* চলমান কনটেস্টের ৩টি রঙিন কার্ড (৮ কলাম) */}
+          <div className="lg:col-span-8 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base md:text-lg font-black text-brand-text flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-brand-gold" />
+                <span>{t.contests.title}</span>
+              </h3>
+              <button
+                onClick={() => {
+                  if (!currentUser) setIsAuthModalOpen(true);
+                  else setIsUploadModalOpen(true);
+                }}
+                className="text-xs font-bold text-brand-purple hover:underline flex items-center gap-1"
+              >
+                <span>{t.contests.viewAll}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              
+              {/* ২৪ ঘণ্টার কনটেস্ট */}
+              <div className="rounded-3xl p-5 text-white bg-gradient-to-br from-rose-500 via-rose-600 to-pink-600 glow-rose shadow-lg relative overflow-hidden flex flex-col justify-between h-[190px]">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase bg-white/20 backdrop-blur-md px-2.5 py-1 rounded-full">
+                      <Clock className="w-3 h-3" />
+                      <span>{t.contests.tier24h.badge}</span>
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-bold text-white pt-1">{t.contests.tier24h.title}</h4>
+                  <p className="text-[10px] text-rose-100">{t.contests.tier24h.subtitle}</p>
+                </div>
+
+                <div className="flex items-center justify-between pt-3 border-t border-white/20">
+                  <div>
+                    <span className="text-[9px] text-rose-100 uppercase font-bold block">{t.contests.prizeLabel}</span>
+                    <span className="text-lg md:text-xl font-black font-sans flex items-center gap-1">
+                      <Gift className="w-4 h-4 text-brand-gold" />
+                      <span>{t.contests.tier24h.prize}</span>
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      if (!currentUser) setIsAuthModalOpen(true);
+                      else setIsUploadModalOpen(true);
+                    }}
+                    className="px-3.5 py-1.5 rounded-full bg-white text-rose-600 hover:bg-rose-50 font-bold text-[11px] shadow-md transition-transform active:scale-95"
+                  >
+                    {t.contests.joinNow}
+                  </button>
+                </div>
+              </div>
+
+              {/* ৭ দিনের কনটেস্ট */}
+              <div className="rounded-3xl p-5 text-white bg-gradient-to-br from-amber-500 via-amber-600 to-orange-500 glow-amber shadow-lg relative overflow-hidden flex flex-col justify-between h-[190px]">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase bg-white/20 backdrop-blur-md px-2.5 py-1 rounded-full">
+                      <Crown className="w-3 h-3 text-brand-gold" />
+                      <span>{t.contests.tier7d.badge}</span>
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-bold text-white pt-1">{t.contests.tier7d.title}</h4>
+                  <p className="text-[10px] text-amber-100">{t.contests.tier7d.subtitle}</p>
+                </div>
+
+                <div className="flex items-center justify-between pt-3 border-t border-white/20">
+                  <div>
+                    <span className="text-[9px] text-amber-100 uppercase font-bold block">{t.contests.prizeLabel}</span>
+                    <span className="text-lg md:text-xl font-black font-sans flex items-center gap-1">
+                      <Gift className="w-4 h-4 text-white" />
+                      <span>{t.contests.tier7d.prize}</span>
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      if (!currentUser) setIsAuthModalOpen(true);
+                      else setIsUploadModalOpen(true);
+                    }}
+                    className="px-3.5 py-1.5 rounded-full bg-white text-amber-700 hover:bg-amber-50 font-bold text-[11px] shadow-md transition-transform active:scale-95"
+                  >
+                    {t.contests.joinNow}
+                  </button>
+                </div>
+              </div>
+
+              {/* ৩০ দিনের কনটেস্ট */}
+              <div className="rounded-3xl p-5 text-white bg-gradient-to-br from-blue-600 via-blue-700 to-cyan-600 glow-blue shadow-lg relative overflow-hidden flex flex-col justify-between h-[190px]">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase bg-white/20 backdrop-blur-md px-2.5 py-1 rounded-full">
+                      <Diamond className="w-3 h-3 text-cyan-200" />
+                      <span>{t.contests.tier30d.badge}</span>
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-bold text-white pt-1">{t.contests.tier30d.title}</h4>
+                  <p className="text-[10px] text-blue-100">{t.contests.tier30d.subtitle}</p>
+                </div>
+
+                <div className="flex items-center justify-between pt-3 border-t border-white/20">
+                  <div>
+                    <span className="text-[9px] text-blue-100 uppercase font-bold block">{t.contests.prizeLabel}</span>
+                    <span className="text-lg md:text-xl font-black font-sans flex items-center gap-1">
+                      <Gift className="w-4 h-4 text-brand-gold" />
+                      <span>{t.contests.tier30d.prize}</span>
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      if (!currentUser) setIsAuthModalOpen(true);
+                      else setIsUploadModalOpen(true);
+                    }}
+                    className="px-3.5 py-1.5 rounded-full bg-white text-blue-700 hover:bg-blue-50 font-bold text-[11px] shadow-md transition-transform active:scale-95"
+                  >
+                    {t.contests.joinNow}
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          {/* ক্যাটাগরি বাছাই ২x৩ গ্রিড (৪ কলাম) */}
+          <div className="lg:col-span-4 space-y-3">
+            <h3 className="text-base md:text-lg font-black text-brand-text flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-brand-purple" />
+              <span>{t.filters.heading}</span>
+            </h3>
+
+            {/* ডেক্সটপ ২x৩ গ্রিড */}
+            <div className="hidden lg:grid grid-cols-3 gap-2.5 bg-white p-3.5 rounded-3xl border border-brand-border shadow-sm">
+              {[
+                { id: "ALL", label: t.filters.all, icon: LayoutGrid, color: "text-purple-600", bg: "bg-purple-50" },
+                { id: "16:9", label: t.filters.landscape, icon: Mountain, color: "text-emerald-600", bg: "bg-emerald-50" },
+                { id: "9:16", label: t.filters.portrait, icon: UserIcon, color: "text-amber-600", bg: "bg-amber-50" },
+                { id: "FREE", label: t.filters.free, icon: Gift, color: "text-rose-600", bg: "bg-rose-50" },
+                { id: "AI", label: t.filters.aiArt, icon: Sparkles, color: "text-indigo-600", bg: "bg-indigo-50" },
+                { id: "WALLPAPER", label: t.filters.wallpaper, icon: MoreHorizontal, color: "text-slate-600", bg: "bg-slate-50" },
+              ].map((f) => {
+                const Icon = f.icon;
+                const isActive = activeFilter === f.id;
+                return (
+                  <button
+                    key={f.id}
+                    onClick={() => setActiveFilter(f.id as any)}
+                    className={`flex flex-col items-center justify-center p-3 rounded-2xl border transition-all text-center gap-1 ${
+                      isActive
+                        ? "border-brand-purple bg-brand-purple/5 shadow-sm"
+                        : "border-slate-100 hover:border-slate-200 bg-white"
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-xl ${f.bg} flex items-center justify-center ${f.color}`}>
+                      <Icon className="w-4 h-4 stroke-[2.5]" />
+                    </div>
+                    <span className={`text-[11px] font-bold ${isActive ? "text-brand-purple" : "text-brand-text"}`}>
+                      {f.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* মোবাইল অনুভূমিক স্ক্রোল চিপস */}
+            <div className="flex lg:hidden items-center gap-2 overflow-x-auto no-scrollbar py-1">
+              {[
+                { id: "ALL", label: t.filters.all },
+                { id: "16:9", label: "১৬:৯" },
+                { id: "9:16", label: "৯:১৬" },
+                { id: "FREE", label: t.filters.free },
+                { id: "AI", label: t.filters.aiArt },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveFilter(tab.id as any)}
+                  className={`px-4 py-2 rounded-full whitespace-nowrap text-xs font-bold transition-all ${
+                    activeFilter === tab.id
+                      ? "bg-brand-purple text-white shadow-md shadow-brand-purple/20"
+                      : "bg-white text-brand-muted border border-brand-border hover:bg-slate-50"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+        </section>
+
+        {/* ==================================================== */}
+        {/* ৫. ট্রেন্ডিং ফটো গ্যালারি ও লিডারবোর্ড               */}
+        {/* ==================================================== */}
+        <section id="trending-gallery" className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          
+          {/* ফটো গ্যালারি গ্রিড (৮ কলাম) */}
+          <div className="lg:col-span-8 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base md:text-xl font-black text-brand-text flex items-center gap-2">
+                <Flame className="w-5 h-5 text-rose-500 fill-rose-500" />
+                <span>{t.gallery.heading}</span>
+              </h3>
+              <span className="text-xs font-bold text-brand-muted">
+                {t.gallery.showingCount(toBengaliNumber(filteredPhotos.length))}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {filteredPhotos.map((photo) => {
+                const isPortrait = photo.aspectRatio === "RATIO_9_16";
+                return (
+                  <div
+                    key={photo.id}
+                    className="group rounded-3xl overflow-hidden bg-brand-surface border border-brand-border shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
+                  >
+                    {/* ফটো ইমেজ */}
+                    <div
+                      onClick={() => setPreviewPhoto(photo)}
+                      className="relative cursor-pointer overflow-hidden bg-slate-100"
+                    >
+                      <div className="absolute top-2.5 left-2.5 right-2.5 z-10 flex items-center justify-between pointer-events-none">
+                        <div className="flex gap-1.5">
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-white font-mono">
+                            {isPortrait ? "৯:১৬" : "১৬:৯"}
+                          </span>
+                          {photo.isAiGenerated && (
+                            <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-purple text-white shadow-md">
+                              <Sparkles className="w-2.5 h-2.5" /> AI
+                            </span>
+                          )}
+                        </div>
+
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500 text-white">
+                          {photo.isFree ? t.gallery.badgeFree : t.gallery.badgePremium}
+                        </span>
+                      </div>
+
+                      <div className={`relative w-full ${isPortrait ? "aspect-[9/16]" : "aspect-[16/9]"}`}>
+                        <img
+                          src={getPhotoUrl(photo)}
+                          alt={photo.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          loading="lazy"
+                        />
+                      </div>
+                    </div>
+
+                    {/* মেটাডাটা ও ভোট বাটন */}
+                    <div className="p-3.5 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="max-w-[140px] md:max-w-[170px]">
+                          <h4 className="text-xs font-bold text-brand-text truncate">{photo.title}</h4>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            {photo.user?.avatarUrl ? (
+                              <img
+                                src={photo.user.avatarUrl}
+                                alt={photo.user.name}
+                                className="w-4 h-4 rounded-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-4 h-4 rounded-full bg-brand-gold text-brand-text font-black text-[8px] flex items-center justify-center">
+                                {photo.user?.name?.charAt(0) || "U"}
+                              </div>
+                            )}
+                            <span className="text-[11px] text-brand-muted font-bold truncate">{photo.user?.name}</span>
+                            {photo.user?.badge === "BLUE_VERIFIED" && <CheckCircle className="w-3.5 h-3.5 text-sky-500" />}
+                            {photo.user?.badge === "FIRE_CREATOR" && <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500" />}
+                          </div>
+                        </div>
+
+                        {/* ডাউনলোড বাটন */}
+                        <button
+                          onClick={() => setDownloadPhoto(photo)}
+                          className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-brand-muted hover:text-brand-purple transition-colors border border-brand-border"
+                          title={t.gallery.downloadBtnTitle}
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* ভোট বাটন */}
+                      <button
+                        onClick={() => setVotingPhoto(photo)}
+                        disabled={photo.hasVoted}
+                        className={`w-full py-2 px-3 rounded-full text-xs font-bold flex items-center justify-center gap-1.5 transition-transform active:scale-95 ${
+                          photo.hasVoted
+                            ? "bg-rose-50 text-rose-500 border border-rose-200"
+                            : "bg-slate-50 hover:bg-rose-50 hover:text-rose-500 text-brand-muted border border-brand-border"
+                        }`}
+                      >
+                        <Heart className={`w-3.5 h-3.5 ${photo.hasVoted ? "fill-rose-500 text-rose-500" : ""}`} />
+                        <span>{photo.hasVoted ? t.gallery.votedBtn : t.gallery.voteBtn}</span>
+                        <span className="opacity-40">&bull;</span>
+                        <span className="font-bold">{toBengaliNumber(photo.voteCount || 0)}</span>
+                      </button>
+                    </div>
+
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* লিডারবোর্ড উইজেট (৪ কলাম) */}
+          <div id="leaderboard-section" className="lg:col-span-4 bg-white p-5 rounded-3xl border border-brand-border shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-brand-border pb-3">
+              <h3 className="text-sm font-black text-brand-text flex items-center gap-2">
+                <Trophy className="w-4 h-4 text-brand-gold" />
+                <span>{t.leaderboard.title}</span>
+              </h3>
+              <Link href="/hall-of-fame" className="text-[11px] font-bold text-brand-purple hover:underline flex items-center gap-1">
+                <span>{t.leaderboard.viewAll}</span>
+                <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+
+            <div className="space-y-3">
+              {leaderboardCreators.map((creator, index) => (
+                <div key={creator.id || index} className="flex items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2.5">
+                    <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] ${
+                      index === 0 ? "bg-amber-400 text-brand-text shadow-sm" : index === 1 ? "bg-slate-200 text-slate-700" : index === 2 ? "bg-amber-700/20 text-amber-900" : "text-brand-muted"
+                    }`}>
+                      {toBengaliNumber(index + 1)}
+                    </span>
+
+                    {creator.avatarUrl ? (
+                      <img
+                        src={creator.avatarUrl}
+                        alt={creator.name}
+                        className="w-7 h-7 rounded-full object-cover border border-brand-border"
+                      />
+                    ) : (
+                      <div className="w-7 h-7 rounded-full bg-slate-100 font-bold text-xs flex items-center justify-center text-brand-purple">
+                        {creator.name?.charAt(0) || "U"}
+                      </div>
+                    )}
+
+                    <div>
+                      <div className="flex items-center gap-1 font-bold text-brand-text truncate max-w-[110px]">
+                        <span>{creator.name}</span>
+                        {creator.badge === "BLUE_VERIFIED" && <CheckCircle className="w-3 h-3 text-sky-500" />}
+                        {creator.badge === "FIRE_CREATOR" && <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500" />}
+                      </div>
+                    </div>
+                  </div>
+
+                  <span className="font-bold text-brand-purple">
+                    {toBengaliNumber(creator.votes || 0)} {t.leaderboard.votesSuffix}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </section>
+
+        {/* ==================================================== */}
+        {/* ৬. ট্রাস্ট ব্যানার ও "চ্যাম্পিয়ন হোন" সিটিএ           */}
+        {/* ==================================================== */}
+        <section className="space-y-4 pt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="flex items-center gap-3 p-4 rounded-2xl bg-white border border-brand-border shadow-sm">
+              <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500 shrink-0">
+                <Gift className="w-5 h-5 stroke-[2.5]" />
+              </div>
+              <div>
+                <h5 className="text-xs font-bold text-brand-text">{t.banners.pillar1Title}</h5>
+                <p className="text-[10px] text-brand-muted">{t.banners.pillar1Desc}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-4 rounded-2xl bg-white border border-brand-border shadow-sm">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-500 shrink-0">
+                <ShieldCheck className="w-5 h-5 stroke-[2.5]" />
+              </div>
+              <div>
+                <h5 className="text-xs font-bold text-brand-text">{t.banners.pillar2Title}</h5>
+                <p className="text-[10px] text-brand-muted">{t.banners.pillar2Desc}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-4 rounded-2xl bg-white border border-brand-border shadow-sm">
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-500 shrink-0">
+                <Users className="w-5 h-5 stroke-[2.5]" />
+              </div>
+              <div>
+                <h5 className="text-xs font-bold text-brand-text">{t.banners.pillar3Title}</h5>
+                <p className="text-[10px] text-brand-muted">{t.banners.pillar3Desc}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-3xl p-6 md:p-8 bg-gradient-to-r from-brand-deep via-brand-purple to-indigo-600 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+            <div className="flex items-center gap-4 relative z-10">
+              <div className="w-12 h-12 md:w-16 md:h-16 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center shrink-0">
+                <Trophy className="w-7 h-7 md:w-9 md:h-9 text-brand-gold stroke-[2.5]" />
+              </div>
+              <div className="space-y-1 text-center md:text-left">
+                <h3 className="text-xl md:text-3xl font-black tracking-tight leading-none">
+                  {t.banners.championTitle}
+                </h3>
+                <p className="text-xs md:text-sm text-slate-200">
+                  {t.banners.championDesc}
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                if (!currentUser) setIsAuthModalOpen(true);
+                else setIsUploadModalOpen(true);
+              }}
+              className="px-6 py-3 rounded-full bg-brand-gold hover:bg-amber-400 text-brand-text font-black text-xs md:text-sm shadow-xl shadow-amber-500/20 transition-transform active:scale-95 shrink-0 flex items-center gap-2"
+            >
+              <span>{t.banners.championBtn}</span>
+              <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+            </button>
+          </div>
+        </section>
+
+      </div>
 
       {/* ==================================================== */}
-      {/* 6. FULLSCREEN LIGHTBOX MODAL                         */}
+      {/* ৭. ফিক্সড মোবাইল বটম ন্যাভিগেশন বার                    */}
+      {/* ==================================================== */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-brand-border md:hidden safe-area-bottom pb-safe">
+        <div className="flex items-center justify-around h-16 px-2 relative">
+          
+          <button
+            onClick={() => {
+              setActiveNavTab("home");
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+            className={`flex flex-col items-center justify-center gap-1 w-14 transition-colors ${
+              activeNavTab === "home" ? "text-brand-purple" : "text-brand-muted hover:text-brand-text"
+            }`}
+          >
+            <HomeIcon className={`w-5 h-5 ${activeNavTab === "home" ? "stroke-[2.5]" : "stroke-[1.75]"}`} />
+            <span className="text-[10px] font-bold">{t.mobileNav.home}</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveNavTab("contests");
+              document.getElementById("ongoing-contests")?.scrollIntoView({ behavior: "smooth" });
+            }}
+            className={`flex flex-col items-center justify-center gap-1 w-14 transition-colors ${
+              activeNavTab === "contests" ? "text-brand-purple" : "text-brand-muted hover:text-brand-text"
+            }`}
+          >
+            <Trophy className={`w-5 h-5 ${activeNavTab === "contests" ? "stroke-[2.5]" : "stroke-[1.75]"}`} />
+            <span className="text-[10px] font-bold">{t.mobileNav.contests}</span>
+          </button>
+
+          {/* সেন্টার ক্যামেরা বাটন (FAB) */}
+          <div className="relative -top-5 flex items-center justify-center">
+            <button
+              onClick={() => {
+                if (!currentUser) setIsAuthModalOpen(true);
+                else setIsUploadModalOpen(true);
+              }}
+              className="w-14 h-14 rounded-full bg-gradient-to-tr from-brand-deep to-brand-purple text-white flex items-center justify-center shadow-xl shadow-brand-purple/40 border-4 border-white active:scale-90 transition-transform"
+              aria-label={t.mobileNav.upload}
+            >
+              <Plus className="w-7 h-7 stroke-[3]" />
+            </button>
+          </div>
+
+          <button
+            onClick={() => {
+              alert("রিওয়ার্ড কেন্দ্র: প্রতিদিন লগইন করে +১০ পয়েন্ট বা স্পন্সর ভিডিও দেখে বাড়তি পয়েন্ট জিতে নিন!");
+            }}
+            className="flex flex-col items-center justify-center gap-1 w-14 text-brand-muted hover:text-brand-text transition-colors"
+          >
+            <Gift className="w-5 h-5 stroke-[1.75]" />
+            <span className="text-[10px] font-bold">{t.mobileNav.rewards}</span>
+          </button>
+
+          <button
+            onClick={() => {
+              if (!currentUser) setIsAuthModalOpen(true);
+              else handleOpenEditProfile();
+            }}
+            className="flex flex-col items-center justify-center gap-1 w-14 text-brand-muted hover:text-brand-text transition-colors"
+          >
+            <UserIcon className="w-5 h-5 stroke-[1.75]" />
+            <span className="text-[10px] font-bold">{t.mobileNav.profile}</span>
+          </button>
+
+        </div>
+      </nav>
+
+      {/* ==================================================== */}
+      {/* ৮. ফুলস্ক্রিন লাইটবক্স প্রিভিউ মোডাল                   */}
       {/* ==================================================== */}
       {previewPhoto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-2xl p-4 md:p-8 animate-in fade-in duration-200">
@@ -1023,19 +1462,19 @@ export default function HomeExperience({
               />
             </div>
 
-            <div className="w-full lg:w-1/3 p-6 space-y-6 flex flex-col justify-between overflow-y-auto">
+            <div className="w-full lg:w-1/3 p-6 space-y-6 flex flex-col justify-between overflow-y-auto text-white">
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-black px-2.5 py-1 rounded-md bg-zinc-900 text-amber-400 border border-zinc-800 uppercase">
-                    {previewPhoto.aspectRatio === "RATIO_9_16" ? "9:16 Portrait" : "16:9 Landscape"}
+                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-md bg-zinc-900 text-amber-400 border border-zinc-800 uppercase font-mono">
+                    {previewPhoto.aspectRatio === "RATIO_9_16" ? "৯:১৬ পোর্ট্রেট" : "১৬:৯ ল্যান্ডস্কেপ"}
                   </span>
                   {previewPhoto.isAiGenerated && (
                     <span className="text-[10px] font-bold px-2.5 py-1 rounded-md bg-violet-600/90 text-white flex items-center gap-1">
-                      <Sparkles className="w-3 h-3" /> AI Art
+                      <Sparkles className="w-3 h-3" /> {t.gallery.badgeAi}
                     </span>
                   )}
                   <span className="text-[10px] font-bold px-2.5 py-1 rounded-md bg-zinc-900 text-zinc-400">
-                    Category: {previewPhoto.category}
+                    বিভাগ: {previewPhoto.category}
                   </span>
                 </div>
 
@@ -1049,7 +1488,7 @@ export default function HomeExperience({
                       className="w-11 h-11 rounded-full object-cover border border-amber-400"
                     />
                   ) : (
-                    <div className="w-11 h-11 rounded-full bg-amber-400 text-black font-extrabold text-base flex items-center justify-center">
+                    <div className="w-11 h-11 rounded-full bg-brand-gold text-brand-text font-black text-base flex items-center justify-center">
                       {previewPhoto.user?.name ? previewPhoto.user.name.charAt(0).toUpperCase() : "U"}
                     </div>
                   )}
@@ -1059,49 +1498,45 @@ export default function HomeExperience({
                       {previewPhoto.user?.badge === "BLUE_VERIFIED" && <CheckCircle className="w-4 h-4 text-sky-400" />}
                       {previewPhoto.user?.badge === "FIRE_CREATOR" && <Flame className="w-4 h-4 text-orange-500 fill-orange-500" />}
                     </div>
-                    <span className="text-xs text-zinc-400">{previewPhoto.user?.location || "Bangladesh"}</span>
+                    <span className="text-xs text-zinc-400">{previewPhoto.user?.location || "বাংলাদেশ"}</span>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 text-center">
                   <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800">
-                    <span className="text-[10px] text-zinc-500 uppercase font-semibold">Total Votes</span>
+                    <span className="text-[10px] text-zinc-500 uppercase font-bold">{t.hero.totalVotes}</span>
                     <div className="text-lg font-black text-rose-500 flex items-center justify-center gap-1 mt-0.5">
                       <Heart className="w-4 h-4 fill-rose-500" />
-                      <span>{previewPhoto.voteCount}</span>
+                      <span>{toBengaliNumber(previewPhoto.voteCount || 0)}</span>
                     </div>
                   </div>
                   <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800">
-                    <span className="text-[10px] text-zinc-500 uppercase font-semibold">Quality Tiers</span>
-                    <div className="text-sm font-black text-amber-400 mt-1">720p &bull; 1080p &bull; 2K</div>
+                    <span className="text-[10px] text-zinc-500 uppercase font-bold">কোয়ালিটি</span>
+                    <div className="text-sm font-bold text-amber-400 mt-1 font-mono">720p • 1080p • 2K</div>
                   </div>
                 </div>
               </div>
 
               <div className="space-y-2.5 pt-4 border-t border-zinc-900">
                 <button
-                  onClick={() => {
-                    setVotingPhoto(previewPhoto);
-                  }}
+                  onClick={() => setVotingPhoto(previewPhoto)}
                   disabled={previewPhoto.hasVoted}
-                  className={`w-full py-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-transform active:scale-95 ${
+                  className={`w-full py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-transform active:scale-95 ${
                     previewPhoto.hasVoted
                       ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
-                      : "bg-amber-400 hover:bg-amber-300 text-black shadow-lg shadow-amber-400/20"
+                      : "bg-amber-400 hover:bg-amber-300 text-black shadow-lg shadow-amber-400/20 font-black"
                   }`}
                 >
                   <Heart className="w-4 h-4 fill-current" />
-                  <span>{previewPhoto.hasVoted ? "Already Voted (ভোট দিয়েছেন)" : "Vote for this Photo (ভোট দিন)"}</span>
+                  <span>{previewPhoto.hasVoted ? t.gallery.votedBtn : t.gallery.voteBtn}</span>
                 </button>
 
                 <button
-                  onClick={() => {
-                    setDownloadPhoto(previewPhoto);
-                  }}
+                  onClick={() => setDownloadPhoto(previewPhoto)}
                   className="w-full py-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-xs flex items-center justify-center gap-2 border border-zinc-800 transition-colors"
                 >
                   <Download className="w-4 h-4" />
-                  <span>Download Resolutions (ডাউনলোড অপশন)</span>
+                  <span>{t.gallery.downloadBtnTitle}</span>
                 </button>
               </div>
             </div>
@@ -1110,17 +1545,153 @@ export default function HomeExperience({
       )}
 
       {/* ==================================================== */}
-      {/* 7. EDIT USER PROFILE MODAL                           */}
+      {/* ৯. মোডাল: ফটো আপলোডার (বাংলা ফরম)                   */}
+      {/* ==================================================== */}
+      {isUploadModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 text-brand-text space-y-4 shadow-2xl relative max-h-[90vh] overflow-y-auto no-scrollbar border border-brand-border">
+            <div className="flex justify-between items-center border-b border-brand-border pb-3">
+              <div className="flex items-center gap-2">
+                <UploadCloud className="w-5 h-5 text-brand-purple" />
+                <h3 className="font-extrabold text-sm">{t.modals.upload.heading}</h3>
+              </div>
+              <button onClick={() => setIsUploadModalOpen(false)} className="text-brand-muted hover:text-brand-text">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handlePhotoSubmit} className="space-y-3.5">
+              <div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={photoInputRef}
+                  onChange={handlePhotoFileSelect}
+                  className="hidden"
+                />
+                <div
+                  onClick={() => photoInputRef.current?.click()}
+                  className="border-2 border-dashed border-slate-200 hover:border-brand-purple rounded-2xl p-4 text-center cursor-pointer bg-slate-50 transition-colors"
+                >
+                  {uploadImageBase64 ? (
+                    <div className="space-y-2">
+                      <img
+                        src={uploadImageBase64}
+                        alt="Upload Preview"
+                        className="max-h-40 mx-auto rounded-xl object-contain"
+                      />
+                      <span className="text-[11px] text-emerald-600 font-bold block">
+                        {t.modals.upload.selectedReady}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-1.5 py-4">
+                      <UploadCloud className="w-8 h-8 text-brand-purple" />
+                      <span className="text-xs font-bold text-brand-text">
+                        {t.modals.upload.selectPrompt}
+                      </span>
+                      <span className="text-[10px] text-brand-muted">{t.modals.upload.fileHint}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-brand-muted block mb-1">
+                  {t.modals.upload.titleLabel}
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder={t.modals.upload.titlePlaceholder}
+                  value={uploadTitle}
+                  onChange={(e) => setUploadTitle(e.target.value)}
+                  className="w-full bg-slate-50 border border-brand-border rounded-xl px-3 py-2 text-xs text-brand-text focus:outline-none focus:border-brand-purple font-sans"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-semibold text-brand-muted block mb-1">{t.modals.upload.categoryLabel}</label>
+                  <select
+                    value={uploadCategory}
+                    onChange={(e) => setUploadCategory(e.target.value)}
+                    className="w-full bg-slate-50 border border-brand-border rounded-xl px-3 py-2 text-xs text-brand-text focus:outline-none focus:border-brand-purple font-sans"
+                  >
+                    <option value="Nature">প্রকৃতি (Nature)</option>
+                    <option value="Street">রাস্তাঘাট (Street)</option>
+                    <option value="Portrait">পোর্ট্রেট (Portrait)</option>
+                    <option value="Wallpaper">ওয়ালপেপার (Wallpaper)</option>
+                    <option value="Abstract">এবস্ট্রাক্ট (Abstract)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-semibold text-brand-muted block mb-1">{t.modals.upload.contestLabel}</label>
+                  <select
+                    value={uploadContestId}
+                    onChange={(e) => setUploadContestId(e.target.value)}
+                    className="w-full bg-slate-50 border border-brand-border rounded-xl px-3 py-2 text-xs text-brand-text focus:outline-none focus:border-brand-purple font-sans"
+                  >
+                    {contests.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.tier === "HOURLY_24" ? "২৪ ঘণ্টা" : c.tier === "WEEKLY_7D" ? "৭ দিন" : "৩০ দিন"} ({toBengaliNumber(c.prizePool)} USD)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-50 border border-brand-border space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={uploadIsAi}
+                    onChange={(e) => setUploadIsAi(e.target.checked)}
+                    className="w-4 h-4 rounded text-brand-purple focus:ring-0"
+                  />
+                  <span className="text-xs font-bold text-brand-text flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5 text-brand-purple" />
+                    <span>{t.modals.upload.aiCheckbox}</span>
+                  </span>
+                </label>
+
+                {uploadIsAi && (
+                  <input
+                    type="text"
+                    placeholder={t.modals.upload.aiInputPlaceholder}
+                    value={uploadAiModel}
+                    onChange={(e) => setUploadAiModel(e.target.value)}
+                    className="w-full bg-white border border-brand-border rounded-lg px-2.5 py-1.5 text-xs text-brand-text focus:outline-none focus:border-brand-purple font-sans"
+                  />
+                )}
+              </div>
+
+              <button
+                type="submit"
+                disabled={uploadLoading}
+                className="w-full py-2.5 rounded-full bg-gradient-to-r from-brand-purple to-brand-deep hover:opacity-95 disabled:opacity-50 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 shadow-md shadow-brand-purple/20"
+              >
+                <PlusCircle className="w-4 h-4 stroke-[2.5]" />
+                <span>{uploadLoading ? t.modals.upload.uploading : t.modals.upload.submitBtn}</span>
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ==================================================== */}
+      {/* ১০. মোডাল: প্রোফাইল এডিটর (বাংলা ফরম)                */}
       {/* ==================================================== */}
       {isProfileModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
-          <div className="bg-zinc-950 border border-zinc-800 rounded-3xl max-w-md w-full p-6 text-white space-y-4 shadow-2xl relative">
-            <div className="flex justify-between items-center border-b border-zinc-800 pb-3">
+          <div className="bg-white border border-brand-border rounded-3xl max-w-md w-full p-6 text-brand-text space-y-4 shadow-2xl relative">
+            <div className="flex justify-between items-center border-b border-brand-border pb-3">
               <div className="flex items-center gap-2">
-                <Edit3 className="w-4 h-4 text-amber-400" />
-                <h3 className="font-extrabold text-sm text-white">প্রোফাইল আপডেট করুন (Edit Profile)</h3>
+                <Edit3 className="w-4 h-4 text-brand-purple" />
+                <h3 className="font-extrabold text-sm">{t.modals.profile.heading}</h3>
               </div>
-              <button onClick={() => setIsProfileModalOpen(false)} className="text-zinc-500 hover:text-white">
+              <button onClick={() => setIsProfileModalOpen(false)} className="text-brand-muted hover:text-brand-text">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -1136,7 +1707,7 @@ export default function HomeExperience({
                 />
                 <div
                   onClick={() => avatarInputRef.current?.click()}
-                  className="relative w-20 h-20 rounded-full border-2 border-dashed border-amber-400 hover:border-amber-300 p-0.5 cursor-pointer group overflow-hidden bg-zinc-900 flex items-center justify-center shadow-lg shadow-amber-400/10"
+                  className="relative w-20 h-20 rounded-full border-2 border-dashed border-brand-purple hover:border-brand-deep p-0.5 cursor-pointer group overflow-hidden bg-slate-50 flex items-center justify-center shadow-md shadow-brand-purple/10"
                 >
                   {profileAvatar ? (
                     <img
@@ -1145,76 +1716,76 @@ export default function HomeExperience({
                       className="w-full h-full rounded-full object-cover group-hover:opacity-75 transition-opacity"
                     />
                   ) : (
-                    <div className="flex flex-col items-center text-zinc-500 group-hover:text-amber-400 transition-colors">
+                    <div className="flex flex-col items-center text-brand-muted group-hover:text-brand-purple transition-colors">
                       <Camera className="w-6 h-6 mb-0.5" />
                       <span className="text-[9px] font-bold">ছবি দিন</span>
                     </div>
                   )}
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-full text-white">
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-full text-white">
                     <Camera className="w-5 h-5" />
                   </div>
                 </div>
-                <span className="text-[10px] text-zinc-400">
-                  {profileAvatar ? "✅ ছবি সিলেক্ট হয়েছে (পরিবর্তন করতে ক্লিক করুন)" : "ফ্রেমে ক্লিক করে আপনার ছবি সিলেক্ট করুন"}
+                <span className="text-[10px] text-brand-muted">
+                  {profileAvatar ? t.modals.profile.avatarReady : t.modals.profile.avatarNotice}
                 </span>
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-zinc-400 block mb-1">পূর্ণ নাম (Full Name)</label>
+                <label className="text-[11px] font-semibold text-brand-muted block mb-1">{t.modals.profile.fullName}</label>
                 <input
                   type="text"
                   required
                   value={profileName}
                   onChange={(e) => setProfileName(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                  className="w-full bg-slate-50 border border-brand-border rounded-xl px-3 py-2 text-xs text-brand-text focus:outline-none focus:border-brand-purple font-sans"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-zinc-400 block mb-1 flex items-center gap-1">
-                  <Phone className="w-3 h-3 text-amber-400" />
-                  <span>মোবাইল নম্বর (Phone / bKash / Nagad Number)</span>
+                <label className="text-[11px] font-semibold text-brand-muted block mb-1 flex items-center gap-1">
+                  <Phone className="w-3 h-3 text-brand-purple" />
+                  <span>{t.modals.profile.phone}</span>
                 </label>
                 <input
                   type="text"
                   placeholder="017XXXXXXXX"
                   value={profilePhone}
                   onChange={(e) => setProfilePhone(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 font-mono"
+                  className="w-full bg-slate-50 border border-brand-border rounded-xl px-3 py-2 text-xs text-brand-text focus:outline-none focus:border-brand-purple font-mono"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-zinc-400 block mb-1 flex items-center gap-1">
-                  <MapPin className="w-3 h-3 text-amber-400" />
-                  <span>ঠিকানা / শহর (City / Address)</span>
+                <label className="text-[11px] font-semibold text-brand-muted block mb-1 flex items-center gap-1">
+                  <MapPin className="w-3 h-3 text-brand-purple" />
+                  <span>{t.modals.profile.location}</span>
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Dhaka, Bangladesh"
+                  placeholder="যেমন: ঢাকা, বাংলাদেশ"
                   value={profileLocation}
                   onChange={(e) => setProfileLocation(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                  className="w-full bg-slate-50 border border-brand-border rounded-xl px-3 py-2 text-xs text-brand-text focus:outline-none focus:border-brand-purple font-sans"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-zinc-400 block mb-1">ছোট বিবরণ / বায়ো (Short Bio)</label>
+                <label className="text-[11px] font-semibold text-brand-muted block mb-1">{t.modals.profile.bio}</label>
                 <textarea
                   rows={2}
-                  placeholder="Passionate landscape & street photographer..."
+                  placeholder="আপনার ফটোগ্রাফি অভিজ্ঞতা..."
                   value={profileBio}
                   onChange={(e) => setProfileBio(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 resize-none"
+                  className="w-full bg-slate-50 border border-brand-border rounded-xl px-3 py-2 text-xs text-brand-text focus:outline-none focus:border-brand-purple resize-none font-sans"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={profileLoading}
-                className="w-full py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 disabled:opacity-50 text-black font-black text-xs transition-transform active:scale-95 shadow-md shadow-amber-400/20"
+                className="w-full py-2.5 rounded-full bg-brand-purple hover:bg-brand-deep disabled:opacity-50 text-white font-bold text-xs transition-transform active:scale-95 shadow-md shadow-brand-purple/20"
               >
-                {profileLoading ? "Updating..." : "Save Profile (সংরক্ষণ করুন)"}
+                {profileLoading ? t.modals.profile.saving : t.modals.profile.saveBtn}
               </button>
             </form>
           </div>
@@ -1222,13 +1793,13 @@ export default function HomeExperience({
       )}
 
       {/* ==================================================== */}
-      {/* 8. FULLSCREEN PAYMENT PROOF MODAL                    */}
+      {/* ১১. মোডাল: পেমেন্ট প্রুফ স্ক্রিনশট লাইটবক্স          */}
       {/* ==================================================== */}
       {viewingProof && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-xl p-4">
           <div className="bg-zinc-950 border border-zinc-800 rounded-3xl max-w-sm w-full p-5 text-white space-y-4 shadow-2xl relative text-center">
             <div className="flex justify-between items-center border-b border-zinc-800 pb-2">
-              <span className="text-xs font-bold text-emerald-400">💸 উইথড্র সফল পেমেন্ট প্রুফ</span>
+              <span className="text-xs font-bold text-emerald-400">💸 ভেরিফায়েড পেমেন্ট রসিদ</span>
               <button onClick={() => setViewingProof(null)} className="text-zinc-500 hover:text-white">
                 <X className="w-5 h-5" />
               </button>
@@ -1241,97 +1812,97 @@ export default function HomeExperience({
             <div className="bg-zinc-900 p-3 rounded-xl border border-zinc-800 flex justify-between items-center text-xs">
               <div>
                 <div className="font-bold text-white text-left">{viewingProof.userName}</div>
-                <div className="text-[10px] text-zinc-400 text-left">{viewingProof.gateway}</div>
+                <div className="text-[10px] text-zinc-400 text-left font-mono">{viewingProof.gateway}</div>
               </div>
-              <div className="font-mono font-black text-emerald-400 text-sm">{viewingProof.amount}</div>
+              <div className="font-bold text-emerald-400 text-sm">{viewingProof.amount}</div>
             </div>
           </div>
         </div>
       )}
 
       {/* ==================================================== */}
-      {/* 9. USER AUTH MODAL (REGISTRATION & LOGIN)            */}
+      {/* ১২. মোডাল: ইউজার অথ (রেজিস্ট্রেশন ও লগইন)            */}
       {/* ==================================================== */}
       {isAuthModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
-          <div className="bg-zinc-950 border border-zinc-800 rounded-3xl max-w-sm w-full p-6 text-white space-y-4 shadow-2xl relative">
-            <div className="flex justify-between items-center border-b border-zinc-800 pb-3">
-              <h3 className="font-extrabold text-sm text-amber-400">
-                {authMode === "REGISTER" ? "নতুন একাউন্ট তৈরি করুন" : "আপনার একাউন্টে লগইন করুন"}
+          <div className="bg-white border border-brand-border rounded-3xl max-w-sm w-full p-6 text-brand-text space-y-4 shadow-2xl relative">
+            <div className="flex justify-between items-center border-b border-brand-border pb-3">
+              <h3 className="font-extrabold text-sm text-brand-purple">
+                {authMode === "REGISTER" ? t.modals.auth.registerHeading : t.modals.auth.loginHeading}
               </h3>
-              <button onClick={() => setIsAuthModalOpen(false)} className="text-zinc-500 hover:text-white">
+              <button onClick={() => setIsAuthModalOpen(false)} className="text-brand-muted hover:text-brand-text">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {authMode === "REGISTER" && (
-              <div className="p-3 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center gap-2 text-xs text-amber-300">
-                <Sparkles className="w-4 h-4 flex-shrink-0 text-amber-400" />
-                <span>রেজিস্টার করলেই পাবেন ৫০ পয়েন্ট ফ্রি ওয়েলকাম বোনাস!</span>
+              <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 flex items-center gap-2 text-xs text-amber-900">
+                <Sparkles className="w-4 h-4 flex-shrink-0 text-amber-500" />
+                <span>{t.modals.auth.bonusNotice}</span>
               </div>
             )}
 
             <form onSubmit={handleAuthSubmit} className="space-y-3">
               {authMode === "REGISTER" && (
                 <div>
-                  <label className="text-[11px] font-semibold text-zinc-400 block mb-1">আপনার নাম (Full Name)</label>
+                  <label className="text-[11px] font-semibold text-brand-muted block mb-1">{t.modals.auth.fullNameLabel}</label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Tanvir Ahmed"
+                    placeholder={t.modals.auth.fullNamePlaceholder}
                     value={authName}
                     onChange={(e) => setAuthName(e.target.value)}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                    className="w-full bg-slate-50 border border-brand-border rounded-xl px-3 py-2 text-xs text-brand-text focus:outline-none focus:border-brand-purple font-sans"
                   />
                 </div>
               )}
 
               <div>
-                <label className="text-[11px] font-semibold text-zinc-400 block mb-1">ইমেইল (Unique Email)</label>
+                <label className="text-[11px] font-semibold text-brand-muted block mb-1">{t.modals.auth.emailLabel}</label>
                 <input
                   type="email"
                   required
-                  placeholder="name@gmail.com"
+                  placeholder={t.modals.auth.emailPlaceholder}
                   value={authEmail}
                   onChange={(e) => setAuthEmail(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                  className="w-full bg-slate-50 border border-brand-border rounded-xl px-3 py-2 text-xs text-brand-text focus:outline-none focus:border-brand-purple font-mono"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-zinc-400 block mb-1">পাসওয়ার্ড (Password)</label>
+                <label className="text-[11px] font-semibold text-brand-muted block mb-1">{t.modals.auth.passwordLabel}</label>
                 <input
                   type="password"
                   required
                   placeholder="••••••••"
                   value={authPassword}
                   onChange={(e) => setAuthPassword(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                  className="w-full bg-slate-50 border border-brand-border rounded-xl px-3 py-2 text-xs text-brand-text focus:outline-none focus:border-brand-purple font-mono"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={authLoading}
-                className="w-full py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 disabled:opacity-50 text-black font-black text-xs transition-transform active:scale-95"
+                className="w-full py-2.5 rounded-full bg-gradient-to-r from-brand-purple to-brand-deep hover:opacity-95 disabled:opacity-50 text-white font-bold text-xs transition-transform active:scale-95 shadow-md shadow-brand-purple/20"
               >
                 {authLoading
-                  ? "Processing..."
+                  ? t.modals.auth.processing
                   : authMode === "REGISTER"
-                  ? "Create Account (+50 Pts)"
-                  : "Sign In"}
+                  ? t.modals.auth.registerBtn
+                  : t.modals.auth.loginBtn}
               </button>
             </form>
 
-            <div className="pt-2 border-t border-zinc-900 text-center">
+            <div className="pt-2 border-t border-brand-border text-center">
               <button
                 type="button"
                 onClick={() => setAuthMode(authMode === "REGISTER" ? "LOGIN" : "REGISTER")}
-                className="text-xs text-zinc-400 hover:text-amber-400 transition-colors"
+                className="text-xs text-brand-muted hover:text-brand-purple font-semibold transition-colors"
               >
                 {authMode === "REGISTER"
-                  ? "আগে থেকেই একাউন্ট আছে? লগইন করুন"
-                  : "একাউন্ট নেই? নতুন একাউন্ট খুলুন (+৫০ পয়েন্ট)"}
+                  ? t.modals.auth.toLoginPrompt
+                  : t.modals.auth.toRegisterPrompt}
               </button>
             </div>
           </div>
@@ -1339,69 +1910,69 @@ export default function HomeExperience({
       )}
 
       {/* ==================================================== */}
-      {/* 10. SPONSORED VOTING MODAL                           */}
+      {/* ১৩. মোডাল: স্পন্সরড ভোটিং অ্যাড-গেট                   */}
       {/* ==================================================== */}
       {votingPhoto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
-          <div className="bg-zinc-950 border border-zinc-800 rounded-3xl max-w-md w-full p-6 text-white space-y-4 shadow-2xl relative text-center">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+          <div className="bg-white border border-brand-border rounded-3xl max-w-md w-full p-6 text-brand-text space-y-4 shadow-2xl relative text-center">
+            <div className="flex items-center justify-between border-b border-brand-border pb-3">
               <div className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-amber-400" />
-                <span className="font-black text-xs text-amber-400 uppercase tracking-wider">
-                  Human Verification for Vote
+                <ShieldCheck className="w-5 h-5 text-brand-purple" />
+                <span className="font-bold text-xs text-brand-purple">
+                  {t.modals.votingGate.heading}
                 </span>
               </div>
-              <button onClick={() => setVotingPhoto(null)} className="text-zinc-500 hover:text-white">
+              <button onClick={() => setVotingPhoto(null)} className="text-brand-muted hover:text-brand-text">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="space-y-1">
-              <h3 className="font-bold text-sm text-zinc-100">
-                ভোট নিশ্চিত করতে স্পন্সর বিজ্ঞাপনটি দেখুন
+              <h3 className="font-bold text-sm text-brand-text">
+                {t.modals.votingGate.subheading}
               </h3>
-              <p className="text-xs text-zinc-400">
-                Voting for: <b className="text-white">"{votingPhoto.title}"</b>
+              <p className="text-xs text-brand-muted">
+                {t.modals.votingGate.targetText(votingPhoto.title)}
               </p>
             </div>
 
             <div
               onClick={triggerAdsterraDirectLink}
-              className="h-44 rounded-2xl bg-zinc-900 border border-zinc-800 flex flex-col items-center justify-center text-xs text-zinc-500 font-bold space-y-1 cursor-pointer hover:border-amber-400/40"
+              className="h-44 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col items-center justify-center text-xs text-brand-muted font-bold space-y-1 cursor-pointer hover:border-brand-purple/40"
             >
-              <div className="flex items-center gap-1 text-amber-400 text-[10px] uppercase">
+              <div className="flex items-center gap-1 text-brand-purple text-[10px] uppercase font-bold">
                 <span>Adsterra Sponsored Offer</span>
                 <ExternalLink className="w-3 h-3" />
               </div>
-              <span>[Click to visit sponsor &bull; 300x250]</span>
+              <span>[বিজ্ঞাপনে ক্লিক করে ক্রিয়েটরকে সাপোর্ট করুন • ৩০০x২৫০]</span>
             </div>
 
             <div className="space-y-2">
               {canConfirmVote ? (
                 <button
                   onClick={handleConfirmVote}
-                  className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-transform active:scale-95"
+                  className="w-full py-3 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-transform active:scale-95"
                 >
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>Confirm Vote Now (ভোট নিশ্চিত করুন)</span>
+                  <span>{t.modals.votingGate.confirmBtn}</span>
                 </button>
               ) : (
-                <div className="w-full py-3 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 font-bold text-xs flex items-center justify-center gap-2 cursor-not-allowed">
-                  <span className="inline-block w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-                  <span>Verifying Human... Please wait {voteCountdown}s</span>
+                <div className="w-full py-3 rounded-full bg-slate-100 border border-slate-200 text-brand-muted font-bold text-xs flex items-center justify-center gap-2 cursor-not-allowed">
+                  <span className="inline-block w-2 h-2 rounded-full bg-brand-purple animate-ping" />
+                  <span>{t.modals.votingGate.waiting(toBengaliNumber(voteCountdown))}</span>
                 </div>
               )}
 
-              <div className="pt-2 border-t border-zinc-900 flex items-center justify-between text-xs">
-                <span className="text-zinc-400 flex items-center gap-1">
-                  <Coins className="w-3.5 h-3.5 text-amber-400" />
-                  Points: <b className="text-white">{currentUser?.pointsBalance ?? 50} Pts</b>
+              <div className="pt-2 border-t border-brand-border flex items-center justify-between text-xs">
+                <span className="text-brand-muted flex items-center gap-1">
+                  <Coins className="w-3.5 h-3.5 text-amber-500" />
+                  <span>{t.modals.votingGate.balanceText(toBengaliNumber(currentUser?.pointsBalance ?? 50))}</span>
                 </span>
                 <button
                   onClick={handleSkipVoteWithPoints}
-                  className="text-amber-400 hover:text-amber-300 font-bold transition-colors"
+                  className="text-brand-purple hover:underline font-bold transition-colors"
                 >
-                  Skip Ad with 2 Points
+                  {t.modals.votingGate.skipWithPoints}
                 </button>
               </div>
             </div>
@@ -1410,19 +1981,19 @@ export default function HomeExperience({
       )}
 
       {/* ==================================================== */}
-      {/* 11. DOWNLOAD QUALITY MODAL                           */}
+      {/* ১৪. মোডাল: ৪-লেয়ার ছবির কোয়ালিটি ও ডাউনলোড           */}
       {/* ==================================================== */}
       {downloadPhoto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
-          <div className="bg-zinc-950 border border-zinc-800 rounded-3xl max-w-md w-full p-6 text-white space-y-4 shadow-2xl">
-            <div className="flex justify-between items-center border-b border-zinc-800 pb-3">
-              <h3 className="font-extrabold text-sm">Select Download Quality</h3>
+          <div className="bg-white border border-brand-border rounded-3xl max-w-md w-full p-6 text-brand-text space-y-4 shadow-2xl">
+            <div className="flex justify-between items-center border-b border-brand-border pb-3">
+              <h3 className="font-extrabold text-sm">{t.modals.download.heading}</h3>
               <button
                 onClick={() => {
                   setDownloadPhoto(null);
                   setIsVerifyingDownload(false);
                 }}
-                className="text-zinc-500 hover:text-white"
+                className="text-brand-muted hover:text-brand-text"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1434,114 +2005,114 @@ export default function HomeExperience({
                   onClick={() => setSelectedTier("720P_WM")}
                   className={`p-3 rounded-2xl border cursor-pointer flex justify-between items-center transition-all ${
                     selectedTier === "720P_WM"
-                      ? "border-amber-400 bg-amber-400/10"
-                      : "border-zinc-800 bg-zinc-900/40"
+                      ? "border-brand-purple bg-brand-purple/5"
+                      : "border-slate-100 bg-slate-50"
                   }`}
                 >
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-xs">720p (With Watermark)</span>
-                      <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded font-black">
-                        Instant Free
+                      <span className="font-bold text-xs">{t.modals.download.tier720WmTitle}</span>
+                      <span className="text-[9px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">
+                        {t.modals.download.tier720WmTag}
                       </span>
                     </div>
-                    <p className="text-[11px] text-zinc-400 mt-0.5">Watermark included &bull; No verification</p>
+                    <p className="text-[11px] text-brand-muted mt-0.5">{t.modals.download.tier720WmDesc}</p>
                   </div>
-                  <span className="font-bold text-emerald-400 text-xs">Free</span>
+                  <span className="font-bold text-emerald-600 text-xs">{t.modals.download.freeBadge}</span>
                 </div>
 
                 <div
                   onClick={() => setSelectedTier("720P_CLEAN")}
                   className={`p-3 rounded-2xl border cursor-pointer flex justify-between items-center transition-all ${
                     selectedTier === "720P_CLEAN"
-                      ? "border-amber-400 bg-amber-400/10"
-                      : "border-zinc-800 bg-zinc-900/40"
+                      ? "border-brand-purple bg-brand-purple/5"
+                      : "border-slate-100 bg-slate-50"
                   }`}
                 >
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-xs">720p (No Watermark)</span>
-                      <span className="text-[9px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded font-black">
-                        1 Ad Step
+                      <span className="font-bold text-xs">{t.modals.download.tier720CleanTitle}</span>
+                      <span className="text-[9px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-bold">
+                        {t.modals.download.tier720CleanTag}
                       </span>
                     </div>
-                    <p className="text-[11px] text-zinc-400 mt-0.5">Clean wallpaper &bull; Watch 1 ad or 5 pts</p>
+                    <p className="text-[11px] text-brand-muted mt-0.5">{t.modals.download.tier720CleanDesc}</p>
                   </div>
-                  <span className="font-bold text-amber-400 text-xs">Unlock</span>
+                  <span className="font-bold text-amber-600 text-xs">{t.modals.download.unlockBadge}</span>
                 </div>
 
                 <div
                   onClick={() => setSelectedTier("1080P")}
                   className={`p-3 rounded-2xl border cursor-pointer flex justify-between items-center transition-all ${
                     selectedTier === "1080P"
-                      ? "border-amber-400 bg-amber-400/10"
-                      : "border-zinc-800 bg-zinc-900/40"
+                      ? "border-brand-purple bg-brand-purple/5"
+                      : "border-slate-100 bg-slate-50"
                   }`}
                 >
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-xs">1080p Full HD</span>
-                      <span className="text-[9px] bg-sky-500/20 text-sky-400 px-2 py-0.5 rounded font-black">
-                        1 Ad Step
+                      <span className="font-bold text-xs">{t.modals.download.tier1080Title}</span>
+                      <span className="text-[9px] bg-sky-100 text-sky-800 px-2 py-0.5 rounded-full font-bold">
+                        {t.modals.download.tier1080Tag}
                       </span>
                     </div>
-                    <p className="text-[11px] text-zinc-400 mt-0.5">Full resolution &bull; 1 ad or 10 pts</p>
+                    <p className="text-[11px] text-brand-muted mt-0.5">{t.modals.download.tier1080Desc}</p>
                   </div>
-                  <span className="font-bold text-sky-400 text-xs">Unlock</span>
+                  <span className="font-bold text-sky-600 text-xs">{t.modals.download.unlockBadge}</span>
                 </div>
 
                 <div
                   onClick={() => setSelectedTier("2K")}
                   className={`p-3 rounded-2xl border cursor-pointer flex justify-between items-center transition-all ${
                     selectedTier === "2K"
-                      ? "border-amber-400 bg-amber-400/10"
-                      : "border-zinc-800 bg-zinc-900/40"
+                      ? "border-brand-purple bg-brand-purple/5"
+                      : "border-slate-100 bg-slate-50"
                   }`}
                 >
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-xs">2K Ultra HD (AI Upscaled)</span>
-                      <Sparkles className="w-3 h-3 text-cyan-400 animate-pulse" />
+                      <span className="font-bold text-xs">{t.modals.download.tier2kTitle}</span>
+                      <Sparkles className="w-3 h-3 text-brand-purple animate-pulse" />
                     </div>
-                    <p className="text-[11px] text-zinc-400 mt-0.5">Maximum sharpness &bull; 2 ads or 25 pts</p>
+                    <p className="text-[11px] text-brand-muted mt-0.5">{t.modals.download.tier2kDesc}</p>
                   </div>
-                  <span className="font-bold text-amber-400 text-xs">Unlock</span>
+                  <span className="font-bold text-brand-purple text-xs">{t.modals.download.unlockBadge}</span>
                 </div>
 
                 <button
                   onClick={() => {
                     if (selectedTier === "720P_WM") {
-                      alert("Downloading 720p watermarked wallpaper...");
+                      alert("৭২০p ওয়াটারমার্কসহ ছবি ডাউনলোড শুরু হচ্ছে...");
                       setDownloadPhoto(null);
                     } else {
                       setUnlockStep(1);
                       setIsVerifyingDownload(true);
                     }
                   }}
-                  className="w-full py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-black text-xs flex items-center justify-center gap-2 transition-transform active:scale-[0.98]"
+                  className="w-full py-3 rounded-full bg-brand-purple hover:bg-brand-deep text-white font-bold text-xs flex items-center justify-center gap-2 transition-transform active:scale-95 shadow-md shadow-brand-purple/20"
                 >
                   <Download className="w-4 h-4" />
                   <span>
                     {selectedTier === "720P_WM"
-                      ? "Download Free 720p (Watermarked)"
-                      : `Proceed to Unlock ${selectedTier.replace("_", " ")}`}
+                      ? t.modals.download.downloadFreeBtn
+                      : t.modals.download.proceedUnlockBtn(selectedTier === "720P_CLEAN" ? "৭২০p" : selectedTier === "1080P" ? "১০৮০p" : "২কে")}
                   </span>
                 </button>
               </div>
             ) : (
               <div className="space-y-3 text-center">
-                <span className="text-xs text-amber-400 font-black uppercase">
-                  Step {unlockStep} of {selectedTier === "2K" ? 2 : 1} Verification
+                <span className="text-xs text-brand-purple font-bold">
+                  {t.modals.download.stepVerification(toBengaliNumber(unlockStep), toBengaliNumber(selectedTier === "2K" ? 2 : 1))}
                 </span>
                 <div
                   onClick={triggerAdsterraDirectLink}
-                  className="h-40 rounded-2xl bg-zinc-900 border border-zinc-800 flex flex-col items-center justify-center text-xs text-zinc-500 font-bold space-y-1 cursor-pointer hover:border-amber-400/40"
+                  className="h-40 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col items-center justify-center text-xs text-brand-muted font-bold space-y-1 cursor-pointer hover:border-brand-purple/40"
                 >
-                  <div className="flex items-center gap-1 text-amber-400 text-[10px] uppercase">
+                  <div className="flex items-center gap-1 text-brand-purple text-[10px] uppercase font-bold">
                     <span>Adsterra Sponsored Offer</span>
                     <ExternalLink className="w-3 h-3" />
                   </div>
-                  <span>[Click sponsor offer to support creator &bull; 300x250]</span>
+                  <span>[স্পন্সর অফারে ক্লিক করে আনলক করুন • ৩০০x২৫০]</span>
                 </div>
 
                 {canDownload ? (
@@ -1550,26 +2121,24 @@ export default function HomeExperience({
                       if (selectedTier === "2K" && unlockStep === 1) {
                         setUnlockStep(2);
                       } else {
-                        alert(
-                          `Verification complete! ${selectedTier.replace("_", " ")} unlocked successfully.`
-                        );
+                        alert("ভেরিফিকেশন সম্পন্ন হয়েছে! ছবিটি ডাউনলোড করা হচ্ছে।");
                         setIsVerifyingDownload(false);
                         setDownloadPhoto(null);
                       }
                     }}
-                    className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95"
+                    className="w-full py-3 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95"
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     <span>
                       {selectedTier === "2K" && unlockStep === 1
-                        ? "Continue to Step 2 (পরবর্তী ধাপ)"
-                        : "Download File Now (ডাউনলোড করুন)"}
+                        ? t.modals.download.continueStep2
+                        : t.modals.download.downloadNow}
                     </span>
                   </button>
                 ) : (
-                  <div className="w-full py-3 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 font-bold text-xs flex items-center justify-center gap-2 cursor-not-allowed">
-                    <span className="inline-block w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-                    <span>Waiting for sponsor check... ({unlockCountdown}s)</span>
+                  <div className="w-full py-3 rounded-full bg-slate-100 border border-slate-200 text-brand-muted font-bold text-xs flex items-center justify-center gap-2 cursor-not-allowed">
+                    <span className="inline-block w-2 h-2 rounded-full bg-brand-purple animate-ping" />
+                    <span>স্পন্সর চেক করা হচ্ছে... ({toBengaliNumber(unlockCountdown)} সেকেন্ড)</span>
                   </div>
                 )}
               </div>

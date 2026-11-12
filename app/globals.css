@@ -2,7 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  background-color: #000000;
-  color: #ffffff;
+@layer base {
+  body {
+    background-color: #f7f6fc;
+    color: #17152f;
+  }
+}
+
+.glow-rose {
+  box-shadow: 0 8px 24px -4px rgba(244, 63, 94, 0.35);
+}
+
+.glow-amber {
+  box-shadow: 0 8px 24px -4px rgba(245, 158, 11, 0.35);
+}
+
+.glow-blue {
+  box-shadow: 0 8px 24px -4px rgba(22, 143, 231, 0.35);
+}
+
+.glow-purple {
+  box-shadow: 0 8px 24px -4px rgba(99, 57, 223, 0.35);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
