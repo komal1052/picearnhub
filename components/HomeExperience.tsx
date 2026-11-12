@@ -438,8 +438,8 @@ export default function HomeExperience({
   const activeHeroPhoto = heroSlides[currentSlideIndex] || heroSlides[0];
 
   // লিডারবোর্ড র‍্যাংকিং গণনা
-  const leaderboardCreators = Array.from(
-    photoList.reduce((acc, p) => {
+  const leaderboardCreators: any[] = Array.from(
+    photoList.reduce((acc: Map<string, any>, p: any) => {
       const u = p.user;
       if (!u) return acc;
       const existing = acc.get(u.id) || {
@@ -1265,7 +1265,7 @@ export default function HomeExperience({
             </div>
 
             <div className="space-y-3">
-              {leaderboardCreators.map((creator, index) => (
+              {leaderboardCreators.map((creator: any, index: number) => (
                 <div key={creator.id || index} className="flex items-center justify-between gap-3 text-xs">
                   <div className="flex items-center gap-2.5">
                     <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] ${

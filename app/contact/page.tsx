@@ -1,7 +1,14 @@
+"use client";
+
 import Link from "next/link";
-import { ArrowLeft, Mail, MessageCircle, Phone, MapPin, Send, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Mail, MessageCircle, MapPin, Send } from "lucide-react";
 
 export default function ContactPage() {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    alert("ধন্যবাদ! আপনার বার্তাটি সফলভাবে পাঠানো হয়েছে। খুব দ্রুত আমাদের টিম আপনার সাথে যোগাযোগ করবে।");
+  };
+
   return (
     <main className="min-h-screen bg-brand-bg text-brand-text px-4 md:px-8 py-10 max-w-[1000px] mx-auto space-y-8">
       
@@ -72,14 +79,8 @@ export default function ContactPage() {
 
         {/* মেসেজ ফর্ম */}
         <div className="bg-white border border-brand-border rounded-3xl p-6 md:p-8 space-y-4 shadow-sm">
-          <h3 className="text-base font-bold text-brand-text border-b border-brand-border pb-3">আমাদের মেসেজ পাঠান</h3>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              alert("ধন্যবাদ! আপনার মেসেজটি সফলভাবে পাঠানো হয়েছে। খুব দ্রুত আমাদের টিম আপনার সাথে যোগাযোগ করবে।");
-            }}
-            className="space-y-3.5"
-          >
+          <h3 className="text-base font-bold text-brand-text border-b border-brand-border pb-3">আমাদের বার্তা পাঠান</h3>
+          <form onSubmit={handleSubmit} className="space-y-3.5">
             <div>
               <label className="text-[11px] font-semibold text-brand-muted block mb-1">আপনার নাম</label>
               <input
