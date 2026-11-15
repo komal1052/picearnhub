@@ -71,7 +71,7 @@ export default function HomeExperience({
   const [photoList, setPhotoList] = useState(initialPhotos);
   const [mounted, setMounted] = useState(false);
 
-  // ডাইনামিক হিরো স্লাইডার (শীর্ষ ৫টি ছবি)
+  // ডাইনামিক হিরো স্লাইডার
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const heroSlides = photoList.length > 0 ? photoList.slice(0, 5) : [];
 
@@ -414,7 +414,7 @@ export default function HomeExperience({
     if (photo.title?.includes("Rickshaw")) return "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1600";
     if (photo.title?.includes("Cyberpunk")) return "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1600";
     if (photo.title?.includes("Tiger")) return "https://images.unsplash.com/photo-1561731216-c3a4d99437d5?w=1600";
-    return "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1600";
+    return photo.imageUrl || "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1600";
   };
 
   // সার্চ ও ফিল্টার
@@ -437,7 +437,6 @@ export default function HomeExperience({
 
   const activeHeroPhoto = heroSlides[currentSlideIndex] || heroSlides[0];
 
-  // লিডারবোর্ড র‍্যাংকিং গণনা
   const leaderboardCreators: any[] = Array.from(
     photoList.reduce((acc: Map<string, any>, p: any) => {
       const u = p.user;
@@ -460,12 +459,11 @@ export default function HomeExperience({
       <SocialBar />
 
       {/* ==================================================== */}
-      {/* ১. টপ হেডার (ব্র্যান্ড, সার্চ, হেল্পলাইন ও ইউজার বার)   */}
+      {/* ১. টপ হেডার বার                                      */}
       {/* ==================================================== */}
       <header className="bg-white border-b border-brand-border sticky top-0 z-40 shadow-sm">
         <div className="max-w-[1440px] mx-auto px-4 md:px-8 h-18 py-2.5 flex items-center justify-between gap-3">
           
-          {/* ব্র্যান্ড লোগো */}
           <div className="flex items-center gap-3 shrink-0">
             <Link href="/" className="flex items-center gap-2.5 group">
               <div className="w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-gradient-to-tr from-brand-deep to-brand-purple text-white flex items-center justify-center font-black shadow-lg shadow-brand-purple/25 transition-transform group-hover:scale-105 overflow-hidden">
@@ -490,7 +488,6 @@ export default function HomeExperience({
             </Link>
           </div>
 
-          {/* ইমেইল ও হোয়াটসঅ্যাপ হেল্পলাইন পিল (ডেস্কটপ) */}
           <div className="hidden xl:flex items-center gap-2.5 shrink-0">
             <a
               href="mailto:picearnhub@gmail.com"
@@ -512,7 +509,6 @@ export default function HomeExperience({
             </a>
           </div>
 
-          {/* সার্চ ফিল্ড (ডেস্কটপ) */}
           <div className="hidden md:flex flex-1 max-w-md mx-2">
             <div className="relative w-full">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
@@ -526,10 +522,7 @@ export default function HomeExperience({
             </div>
           </div>
 
-          {/* ডানপাশের বাটন ও ইউজার প্রোফাইল */}
           <div className="flex items-center gap-2 md:gap-3">
-            
-            {/* মোবাইল হেল্পলাইন শর্টকাট */}
             <div className="flex lg:hidden items-center gap-1.5">
               <a
                 href="mailto:picearnhub@gmail.com"
@@ -549,14 +542,12 @@ export default function HomeExperience({
               </a>
             </div>
 
-            {/* পয়েন্ট ব্যাজ */}
             <div className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold shadow-sm">
               <Coins className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
               <span className="font-bold">{toBengaliNumber(currentUser?.pointsBalance ?? 50)}</span>
               <span className="text-[10px] text-amber-700 font-extrabold">{t.header.pointsTag}</span>
             </div>
 
-            {/* ছবি জমা দিন বাটন (ডেস্কটপ) */}
             <button
               onClick={() => {
                 if (!currentUser) {
@@ -571,7 +562,6 @@ export default function HomeExperience({
               <span>{t.header.uploadBtn}</span>
             </button>
 
-            {/* ইউজার ড্রপডাউন / লগইন বাটন */}
             {currentUser ? (
               <div className="relative">
                 <button
@@ -634,7 +624,7 @@ export default function HomeExperience({
       </header>
 
       {/* ==================================================== */}
-      {/* ২. মেইন ন্যাভিগেশন রিবন (ডেস্কটপ মেনু)                 */}
+      {/* ২. মেইন ন্যাভিগেশন রিবন                               */}
       {/* ==================================================== */}
       <nav className="bg-white/90 backdrop-blur-md border-b border-brand-border sticky top-18 z-30 hidden md:block">
         <div className="max-w-[1440px] mx-auto px-4 md:px-8 h-12 flex items-center justify-between">
@@ -681,25 +671,37 @@ export default function HomeExperience({
               <span>{t.nav.winners}</span>
             </Link>
 
-            <button
-              onClick={() => {
-                document.getElementById("leaderboard-section")?.scrollIntoView({ behavior: "smooth" });
-              }}
+            <Link
+              href="/leaderboard"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:text-brand-purple hover:bg-slate-50 transition-colors"
             >
               <BarChart3 className="w-3.5 h-3.5" />
               <span>{t.nav.leaderboard}</span>
-            </button>
+            </Link>
 
-            <button
-              onClick={() => {
-                alert("রিওয়ার্ড কেন্দ্র: প্রতিদিন লগইন করে +১০ পয়েন্ট বা স্পন্সর ভিডিও দেখে বাড়তি পয়েন্ট জিতে নিন!");
-              }}
+            <Link
+              href="/rewards"
               className="flex items-center gap-1 px-3 py-1.5 rounded-full hover:text-brand-purple hover:bg-slate-50 transition-colors"
             >
               <Gift className="w-3.5 h-3.5" />
               <span>{t.nav.rewards}</span>
-            </button>
+            </Link>
+
+            <Link
+              href="/faq"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:text-brand-purple hover:bg-slate-50 transition-colors"
+            >
+              <HelpCircle className="w-3.5 h-3.5" />
+              <span>{t.nav.faq}</span>
+            </Link>
+
+            <Link
+              href="/contact"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:text-brand-purple hover:bg-slate-50 transition-colors"
+            >
+              <PhoneCall className="w-3.5 h-3.5" />
+              <span>{t.nav.contact}</span>
+            </Link>
 
             <Link
               href="/admin"
@@ -718,13 +720,12 @@ export default function HomeExperience({
       </nav>
 
       {/* ==================================================== */}
-      {/* ৩. হিরো স্লাইডার ও সাইডবার নোটিশ/প্রুফ                 */}
+      {/* ৩. হিরো স্লাইডার ও সাইডবার                            */}
       {/* ==================================================== */}
       <div className="max-w-[1440px] mx-auto px-4 md:px-8 space-y-6 md:space-y-8">
         
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
           
-          {/* ডাইনামিক হিরো স্লাইডার (৮ কলাম) */}
           <div className="lg:col-span-8">
             <div
               onClick={() => {
@@ -744,13 +745,11 @@ export default function HomeExperience({
               <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
               <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-transparent to-transparent" />
 
-              {/* টপ ব্যানার ট্যাগ */}
               <div className="absolute top-5 left-5 z-10 flex items-center gap-2 bg-brand-purple/90 backdrop-blur-md text-white px-3.5 py-1.5 rounded-full font-bold text-xs uppercase tracking-wider shadow-lg">
                 <Trophy className="w-3.5 h-3.5 text-brand-gold" />
                 <span>{t.hero.topContestTag}</span>
               </div>
 
-              {/* স্লাইড নেভিগেশন অ্যারো বাটন */}
               <button
                 onClick={handlePrevSlide}
                 className="absolute left-3 top-1/2 -translate-y-1/2 z-20 p-2.5 rounded-full bg-white/20 hover:bg-white/40 backdrop-blur-md text-white opacity-0 group-hover:opacity-100 transition-opacity active:scale-95"
@@ -766,7 +765,6 @@ export default function HomeExperience({
                 <ChevronRight className="w-5 h-5 stroke-[2.5]" />
               </button>
 
-              {/* কনটেন্ট লেয়ার */}
               {activeHeroPhoto && (
                 <div className="relative z-10 space-y-3 max-w-xl">
                   <h2 className="text-2xl md:text-4xl font-black text-white leading-tight drop-shadow-md">
@@ -819,7 +817,6 @@ export default function HomeExperience({
                 </div>
               )}
 
-              {/* স্লাইড পজিশন ডটস */}
               <div className="absolute bottom-5 right-6 flex gap-1.5 z-20">
                 {heroSlides.map((_, idx) => (
                   <button
@@ -837,7 +834,6 @@ export default function HomeExperience({
             </div>
           </div>
 
-          {/* সাইডবার: নোটিশ বোর্ড ও উইথড্র প্রুফ (৪ কলাম) */}
           <div className="lg:col-span-4 rounded-3xl bg-white border border-brand-border p-5 flex flex-col justify-between shadow-sm space-y-4">
             <div className="space-y-3">
               <div className="flex items-center justify-between border-b border-brand-border pb-2.5">
@@ -865,7 +861,6 @@ export default function HomeExperience({
                   </button>
                 </div>
 
-                {/* পালসিং লাইভ ব্যাজ */}
                 <span className="flex items-center gap-1.5 text-[9px] font-black px-2 py-0.5 rounded-full bg-rose-50 text-rose-500 border border-rose-200 tracking-wider">
                   <span className="relative flex h-1.5 w-1.5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
@@ -923,7 +918,6 @@ export default function HomeExperience({
               )}
             </div>
 
-            {/* অ্যাডস্টেরা স্পন্সরড অফার স্লট */}
             <div
               onClick={triggerAdsterraDirectLink}
               className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-1 cursor-pointer hover:border-brand-purple/40 transition-colors"
@@ -946,7 +940,6 @@ export default function HomeExperience({
         {/* ==================================================== */}
         <section id="ongoing-contests" className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           
-          {/* চলমান কনটেস্টের ৩টি রঙিন কার্ড (৮ কলাম) */}
           <div className="lg:col-span-8 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-base md:text-lg font-black text-brand-text flex items-center gap-2">
@@ -965,121 +958,88 @@ export default function HomeExperience({
               </button>
             </div>
 
+            {/* ৩টি ব্যালেন্সড ডাইনামিক কার্ড */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              
-              {/* ২৪ ঘণ্টার কনটেস্ট */}
-              <div className="rounded-3xl p-5 text-white bg-gradient-to-br from-rose-500 via-rose-600 to-pink-600 glow-rose shadow-lg relative overflow-hidden flex flex-col justify-between h-[190px]">
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase bg-white/20 backdrop-blur-md px-2.5 py-1 rounded-full">
-                      <Clock className="w-3 h-3" />
-                      <span>{t.contests.tier24h.badge}</span>
-                    </span>
-                  </div>
-                  <h4 className="text-sm font-bold text-white pt-1">{t.contests.tier24h.title}</h4>
-                  <p className="text-[10px] text-rose-100">{t.contests.tier24h.subtitle}</p>
-                </div>
+              {(() => {
+                const c24 = contests.filter((c: any) => c.tier === "HOURLY_24").slice(-1)[0];
+                const c7 = contests.filter((c: any) => c.tier === "WEEKLY_7D").slice(-1)[0];
+                const c30 = contests.filter((c: any) => c.tier === "MONTHLY_30D").slice(-1)[0];
 
-                <div className="flex items-center justify-between pt-3 border-t border-white/20">
-                  <div>
-                    <span className="text-[9px] text-rose-100 uppercase font-bold block">{t.contests.prizeLabel}</span>
-                    <span className="text-lg md:text-xl font-black font-sans flex items-center gap-1">
-                      <Gift className="w-4 h-4 text-brand-gold" />
-                      <span>{t.contests.tier24h.prize}</span>
-                    </span>
-                  </div>
+                const prominentContests = [
+                  c24 || { id: "c24_default", title: "২৪ ঘণ্টার ফ্ল্যাশ কনটেস্ট", tier: "HOURLY_24", prizePool: 5, endTime: new Date(Date.now() + 24 * 3600 * 1000) },
+                  c7 || { id: "c7_default", title: "৭ দিনের সাপ্তাহিক কনটেস্ট", tier: "WEEKLY_7D", prizePool: 25, endTime: new Date(Date.now() + 7 * 24 * 3600 * 1000) },
+                  c30 || { id: "c30_default", title: "৩০ দিনের মেগা গ্র্যান্ড প্রাইজ", tier: "MONTHLY_30D", prizePool: 100, endTime: new Date(Date.now() + 30 * 24 * 3600 * 1000) },
+                ];
 
-                  <button
-                    onClick={() => {
-                      if (!currentUser) setIsAuthModalOpen(true);
-                      else setIsUploadModalOpen(true);
-                    }}
-                    className="px-3.5 py-1.5 rounded-full bg-white text-rose-600 hover:bg-rose-50 font-bold text-[11px] shadow-md transition-transform active:scale-95"
-                  >
-                    {t.contests.joinNow}
-                  </button>
-                </div>
-              </div>
+                return prominentContests.map((c: any) => {
+                  const is24h = c.tier === "HOURLY_24";
+                  const is7d = c.tier === "WEEKLY_7D";
 
-              {/* ৭ দিনের কনটেস্ট */}
-              <div className="rounded-3xl p-5 text-white bg-gradient-to-br from-amber-500 via-amber-600 to-orange-500 glow-amber shadow-lg relative overflow-hidden flex flex-col justify-between h-[190px]">
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase bg-white/20 backdrop-blur-md px-2.5 py-1 rounded-full">
-                      <Crown className="w-3 h-3 text-brand-gold" />
-                      <span>{t.contests.tier7d.badge}</span>
-                    </span>
-                  </div>
-                  <h4 className="text-sm font-bold text-white pt-1">{t.contests.tier7d.title}</h4>
-                  <p className="text-[10px] text-amber-100">{t.contests.tier7d.subtitle}</p>
-                </div>
+                  const gradientClass = is24h
+                    ? "from-rose-500 via-rose-600 to-pink-600 glow-rose"
+                    : is7d
+                    ? "from-amber-500 via-amber-600 to-orange-500 glow-amber"
+                    : "from-blue-600 via-blue-700 to-cyan-600 glow-blue";
 
-                <div className="flex items-center justify-between pt-3 border-t border-white/20">
-                  <div>
-                    <span className="text-[9px] text-amber-100 uppercase font-bold block">{t.contests.prizeLabel}</span>
-                    <span className="text-lg md:text-xl font-black font-sans flex items-center gap-1">
-                      <Gift className="w-4 h-4 text-white" />
-                      <span>{t.contests.tier7d.prize}</span>
-                    </span>
-                  </div>
+                  const badgeText = is24h ? "২৪ ঘণ্টা" : is7d ? "৭ দিন" : "৩০ দিন";
+                  const Icon = is24h ? Clock : is7d ? Crown : Diamond;
+                  const prizeTaka = Math.round(Number(c.prizePool) * 120);
 
-                  <button
-                    onClick={() => {
-                      if (!currentUser) setIsAuthModalOpen(true);
-                      else setIsUploadModalOpen(true);
-                    }}
-                    className="px-3.5 py-1.5 rounded-full bg-white text-amber-700 hover:bg-amber-50 font-bold text-[11px] shadow-md transition-transform active:scale-95"
-                  >
-                    {t.contests.joinNow}
-                  </button>
-                </div>
-              </div>
+                  return (
+                    <div
+                      key={c.id}
+                      className={`rounded-3xl p-5 text-white bg-gradient-to-br ${gradientClass} shadow-lg relative overflow-hidden flex flex-col justify-between h-[195px] transition-transform hover:-translate-y-1`}
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase bg-white/20 backdrop-blur-md px-2.5 py-1 rounded-full">
+                            <Icon className="w-3 h-3 text-brand-gold" />
+                            <span>{badgeText}</span>
+                          </span>
+                        </div>
+                        <h4 className="text-sm font-bold text-white pt-1 line-clamp-2 leading-snug drop-shadow-sm">
+                          {c.title}
+                        </h4>
+                        <p className="text-[10px] text-white/80">
+                          সমাপ্তি: {toBengaliDate(c.endTime)}
+                        </p>
+                      </div>
 
-              {/* ৩০ দিনের কনটেস্ট */}
-              <div className="rounded-3xl p-5 text-white bg-gradient-to-br from-blue-600 via-blue-700 to-cyan-600 glow-blue shadow-lg relative overflow-hidden flex flex-col justify-between h-[190px]">
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase bg-white/20 backdrop-blur-md px-2.5 py-1 rounded-full">
-                      <Diamond className="w-3 h-3 text-cyan-200" />
-                      <span>{t.contests.tier30d.badge}</span>
-                    </span>
-                  </div>
-                  <h4 className="text-sm font-bold text-white pt-1">{t.contests.tier30d.title}</h4>
-                  <p className="text-[10px] text-blue-100">{t.contests.tier30d.subtitle}</p>
-                </div>
+                      <div className="flex items-center justify-between pt-3 border-t border-white/20">
+                        <div>
+                          <span className="text-[9px] text-white/80 uppercase font-bold block">
+                            {t.contests.prizeLabel}
+                          </span>
+                          <span className="text-base md:text-lg font-black font-sans flex items-center gap-1">
+                            <Gift className="w-4 h-4 text-brand-gold shrink-0" />
+                            <span>৳{toBengaliNumber(prizeTaka.toLocaleString("en-US"))} (${toBengaliNumber(c.prizePool)})</span>
+                          </span>
+                        </div>
 
-                <div className="flex items-center justify-between pt-3 border-t border-white/20">
-                  <div>
-                    <span className="text-[9px] text-blue-100 uppercase font-bold block">{t.contests.prizeLabel}</span>
-                    <span className="text-lg md:text-xl font-black font-sans flex items-center gap-1">
-                      <Gift className="w-4 h-4 text-brand-gold" />
-                      <span>{t.contests.tier30d.prize}</span>
-                    </span>
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      if (!currentUser) setIsAuthModalOpen(true);
-                      else setIsUploadModalOpen(true);
-                    }}
-                    className="px-3.5 py-1.5 rounded-full bg-white text-blue-700 hover:bg-blue-50 font-bold text-[11px] shadow-md transition-transform active:scale-95"
-                  >
-                    {t.contests.joinNow}
-                  </button>
-                </div>
-              </div>
-
+                        <button
+                          onClick={() => {
+                            setUploadContestId(c.id);
+                            if (!currentUser) setIsAuthModalOpen(true);
+                            else setIsUploadModalOpen(true);
+                          }}
+                          className="px-3.5 py-1.5 rounded-full bg-white text-slate-900 hover:bg-slate-100 font-bold text-[11px] shadow-md transition-transform active:scale-95 shrink-0"
+                        >
+                          {t.contests.joinNow}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
             </div>
           </div>
 
-          {/* ক্যাটাগরি বাছাই ২x৩ গ্রিড (৪ কলাম) */}
           <div className="lg:col-span-4 space-y-3">
             <h3 className="text-base md:text-lg font-black text-brand-text flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-brand-purple" />
               <span>{t.filters.heading}</span>
             </h3>
 
-            {/* ডেক্সটপ ২x৩ গ্রিড */}
             <div className="hidden lg:grid grid-cols-3 gap-2.5 bg-white p-3.5 rounded-3xl border border-brand-border shadow-sm">
               {[
                 { id: "ALL", label: t.filters.all, icon: LayoutGrid, color: "text-purple-600", bg: "bg-purple-50" },
@@ -1112,7 +1072,6 @@ export default function HomeExperience({
               })}
             </div>
 
-            {/* মোবাইল অনুভূমিক স্ক্রোল চিপস */}
             <div className="flex lg:hidden items-center gap-2 overflow-x-auto no-scrollbar py-1">
               {[
                 { id: "ALL", label: t.filters.all },
@@ -1143,7 +1102,6 @@ export default function HomeExperience({
         {/* ==================================================== */}
         <section id="trending-gallery" className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           
-          {/* ফটো গ্যালারি গ্রিড (৮ কলাম) */}
           <div className="lg:col-span-8 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-base md:text-xl font-black text-brand-text flex items-center gap-2">
@@ -1163,7 +1121,6 @@ export default function HomeExperience({
                     key={photo.id}
                     className="group rounded-3xl overflow-hidden bg-brand-surface border border-brand-border shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
                   >
-                    {/* ফটো ইমেজ */}
                     <div
                       onClick={() => setPreviewPhoto(photo)}
                       className="relative cursor-pointer overflow-hidden bg-slate-100"
@@ -1195,7 +1152,6 @@ export default function HomeExperience({
                       </div>
                     </div>
 
-                    {/* মেটাডাটা ও ভোট বাটন */}
                     <div className="p-3.5 space-y-2.5">
                       <div className="flex items-center justify-between">
                         <div className="max-w-[140px] md:max-w-[170px]">
@@ -1209,7 +1165,7 @@ export default function HomeExperience({
                               />
                             ) : (
                               <div className="w-4 h-4 rounded-full bg-brand-gold text-brand-text font-black text-[8px] flex items-center justify-center">
-                                {photo.user?.name?.charAt(0) || "U"}
+                                {photo.user?.name ? photo.user.name.charAt(0).toUpperCase() : "U"}
                               </div>
                             )}
                             <span className="text-[11px] text-brand-muted font-bold truncate">{photo.user?.name}</span>
@@ -1218,7 +1174,6 @@ export default function HomeExperience({
                           </div>
                         </div>
 
-                        {/* ডাউনলোড বাটন */}
                         <button
                           onClick={() => setDownloadPhoto(photo)}
                           className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-brand-muted hover:text-brand-purple transition-colors border border-brand-border"
@@ -1228,7 +1183,6 @@ export default function HomeExperience({
                         </button>
                       </div>
 
-                      {/* ভোট বাটন */}
                       <button
                         onClick={() => setVotingPhoto(photo)}
                         disabled={photo.hasVoted}
@@ -1251,7 +1205,6 @@ export default function HomeExperience({
             </div>
           </div>
 
-          {/* লিডারবোর্ড উইজেট (৪ কলাম) */}
           <div id="leaderboard-section" className="lg:col-span-4 bg-white p-5 rounded-3xl border border-brand-border shadow-sm space-y-4">
             <div className="flex items-center justify-between border-b border-brand-border pb-3">
               <h3 className="text-sm font-black text-brand-text flex items-center gap-2">
@@ -1269,7 +1222,7 @@ export default function HomeExperience({
                 <div key={creator.id || index} className="flex items-center justify-between gap-3 text-xs">
                   <div className="flex items-center gap-2.5">
                     <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] ${
-                      index === 0 ? "bg-amber-400 text-brand-text shadow-sm" : index === 1 ? "bg-slate-200 text-slate-700" : index === 2 ? "bg-amber-700/20 text-amber-900" : "text-brand-muted"
+                      index === 0 ? "bg-amber-400 text-brand-text" : index === 1 ? "bg-slate-200 text-slate-700" : index === 2 ? "bg-amber-100 text-amber-900" : "text-brand-muted"
                     }`}>
                       {toBengaliNumber(index + 1)}
                     </span>
@@ -1289,7 +1242,7 @@ export default function HomeExperience({
                     <div>
                       <div className="flex items-center gap-1 font-bold text-brand-text truncate max-w-[110px]">
                         <span>{creator.name}</span>
-                        {creator.badge === "BLUE_VERIFIED" && <CheckCircle className="w-3 h-3 text-sky-500" />}
+                        {creator.badge === "BLUE_VERIFIED" && <CheckCircle className="w-3.5 h-3.5 text-sky-500" />}
                         {creator.badge === "FIRE_CREATOR" && <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500" />}
                       </div>
                     </div>
@@ -1403,7 +1356,6 @@ export default function HomeExperience({
             <span className="text-[10px] font-bold">{t.mobileNav.contests}</span>
           </button>
 
-          {/* সেন্টার ক্যামেরা বাটন (FAB) */}
           <div className="relative -top-5 flex items-center justify-center">
             <button
               onClick={() => {
@@ -1417,15 +1369,13 @@ export default function HomeExperience({
             </button>
           </div>
 
-          <button
-            onClick={() => {
-              alert("রিওয়ার্ড কেন্দ্র: প্রতিদিন লগইন করে +১০ পয়েন্ট বা স্পন্সর ভিডিও দেখে বাড়তি পয়েন্ট জিতে নিন!");
-            }}
+          <Link
+            href="/rewards"
             className="flex flex-col items-center justify-center gap-1 w-14 text-brand-muted hover:text-brand-text transition-colors"
           >
             <Gift className="w-5 h-5 stroke-[1.75]" />
             <span className="text-[10px] font-bold">{t.mobileNav.rewards}</span>
-          </button>
+          </Link>
 
           <button
             onClick={() => {
@@ -1545,7 +1495,7 @@ export default function HomeExperience({
       )}
 
       {/* ==================================================== */}
-      {/* ৯. মোডাল: ফটো আপলোডার (বাংলা ফরম)                   */}
+      {/* ৯. মোডাল: ফটো আপলোডার                               */}
       {/* ==================================================== */}
       {isUploadModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
@@ -1681,7 +1631,7 @@ export default function HomeExperience({
       )}
 
       {/* ==================================================== */}
-      {/* ১০. মোডাল: প্রোফাইল এডিটর (বাংলা ফরম)                */}
+      {/* ১০. মোডাল: প্রোফাইল এডিটর                           */}
       {/* ==================================================== */}
       {isProfileModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
@@ -1793,7 +1743,7 @@ export default function HomeExperience({
       )}
 
       {/* ==================================================== */}
-      {/* ১১. মোডাল: পেমেন্ট প্রুফ স্ক্রিনশট লাইটবক্স          */}
+      {/* ১১. মোডাল: পেমেন্ট প্রুফ লাইটবক্স                   */}
       {/* ==================================================== */}
       {viewingProof && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-xl p-4">
@@ -2052,7 +2002,7 @@ export default function HomeExperience({
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-xs">{t.modals.download.tier1080Title}</span>
-                      <span className="text-[9px] bg-sky-100 text-sky-800 px-2 py-0.5 rounded-full font-bold">
+                      <span className="text-[9px] bg-sky-100 text-sky-800 px-2 py-0.5 rounded-full font-black">
                         {t.modals.download.tier1080Tag}
                       </span>
                     </div>

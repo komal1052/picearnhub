@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Layers,
   Wallet,
@@ -11,14 +11,16 @@ import {
   ArrowLeft,
   Image as ImageIcon,
   UploadCloud,
-  Coins,
-  ShieldCheck
+  Trophy,
+  PlusCircle,
+  Calendar,
+  Sparkles
 } from "lucide-react";
 import Link from "next/link";
 import { toBengaliNumber } from "@/lib/formatters";
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<"PAYOUTS" | "NOTICES" | "PROOFS">("PAYOUTS");
+  const [activeTab, setActiveTab] = useState<"PAYOUTS" | "NOTICES" | "PROOFS" | "CONTESTS">("CONTESTS");
 
   // নোটিশ স্টেট
   const [noticeTitle, setNoticeTitle] = useState("");
@@ -35,7 +37,16 @@ export default function AdminDashboard() {
   const [proofStatus, setProofStatus] = useState<string | null>(null);
   const [proofLoading, setProofLoading] = useState(false);
 
-  // পেন্ডিং উইথড্র তালিকা (ডেমো/লাইভ)
+  // কনটেস্ট তৈরি স্টেট
+  const [contestTitle, setContestTitle] = useState("");
+  const [contestTier, setContestTier] = useState<"HOURLY_24" | "WEEKLY_7D" | "MONTHLY_30D">("HOURLY_24");
+  const [contestPrize, setContestPrize] = useState("5.00");
+  const [contestAllowAi, setContestAllowAi] = useState(true);
+  const [contestStatus, setContestStatus] = useState<string | null>(null);
+  const [contestLoading, setContestLoading] = useState(false);
+  const [activeContests, setActiveContests] = useState<any[]>([]);
+
+  // পেন্ডিং উইথড্র তালিকা
   const [payouts, setPayouts] = useState([
     {
       id: "trx-demo-1",
@@ -57,6 +68,20 @@ export default function AdminDashboard() {
     },
   ]);
 
+  // কনটেস্ট লিস্ট লোড করা
+  const loadContests = () => {
+    fetch("/api/admin/contests")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.contests) setActiveContests(data.contests);
+      })
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    loadContests();
+  }, []);
+
   const handlePayoutAction = async (trxId: string, action: "APPROVE" | "REJECT") => {
     let refId = "MANUAL_DISBURSED";
     if (action === "APPROVE") {
@@ -72,7 +97,7 @@ export default function AdminDashboard() {
       });
 
       setPayouts((prev) => prev.filter((p) => p.id !== trxId));
-      alert(action === "APPROVE" ? `উইথড্র সফল হয়েছে! TrxID: ${refId}` : "উইথড্র বাতিল করা হয়েছে এবং টাকা ইউজারের ওয়ালেটে ফেরত দেওয়া হয়েছে।");
+      alert(action === "APPROVE" ? `উইথড্র সফল হয়েছে! TrxID: ${refId}` : "উইথড্র বাতিল করা হয়েছে এবং টাকা ওয়ালেটে ফেরত দেওয়া হয়েছে।");
     } catch {
       alert("অ্যাকশন সম্পন্ন করা যায়নি।");
     }
@@ -167,6 +192,39 @@ export default function AdminDashboard() {
     }
   };
 
+  // নতুন কনটেস্ট লঞ্চ হ্যান্ডলার
+  const handleCreateContest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setContestLoading(true);
+
+    try {
+      const res = await fetch("/api/admin/contests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: contestTitle,
+          tier: contestTier,
+          prizePool: contestPrize,
+          allowAi: contestAllowAi,
+        }),
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        setContestStatus("নতুন কনটেস্ট সফলভাবে চালু হয়েছে এবং হোমপেজে লাইভ দেখাচ্ছে!");
+        setContestTitle("");
+        loadContests();
+        setTimeout(() => setContestStatus(null), 4000);
+      } else {
+        alert(data.error || "কনটেস্ট তৈরি ব্যর্থ হয়েছে।");
+      }
+    } catch {
+      alert("নেটওয়ার্ক সমস্যা। আবার চেষ্টা করুন।");
+    } finally {
+      setContestLoading(false);
+    }
+  };
+
   const totalPendingAmount = payouts.reduce((a, b) => a + parseFloat(b.amount), 0);
 
   return (
@@ -184,7 +242,7 @@ export default function AdminDashboard() {
             <span>পিকআর্নহাব অ্যাডমিন কন্ট্রোল সেন্টার</span>
           </h1>
           <p className="text-xs text-brand-muted mt-0.5">
-            বিকাশ, নগদ ও স্ক্রিল উইথড্র অনুমোদন, সাইডবার নোটিশ ও পেমেন্ট প্রুফ ব্যবস্থাপনা।
+            কনটেস্ট পরিচালনা, উইথড্র অনুমোদন, সাইডবার নোটিশ ও পেমেন্ট প্রুফ ব্যবস্থাপনা।
           </p>
         </div>
 
@@ -196,8 +254,20 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* ট্যাব সুইচ নেভিগেশন */}
+      {/* ট্যাব সুইচ নেভিগেশন (৪টি ট্যাব) */}
       <div className="flex gap-2 border-b border-brand-border pb-3 overflow-x-auto no-scrollbar">
+        <button
+          onClick={() => setActiveTab("CONTESTS")}
+          className={`py-2 px-4 rounded-full text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+            activeTab === "CONTESTS"
+              ? "bg-brand-purple text-white shadow-md shadow-brand-purple/20 font-black"
+              : "bg-white border border-brand-border text-brand-muted hover:text-brand-text"
+          }`}
+        >
+          <Trophy className="w-4 h-4" />
+          <span>কনটেস্ট পরিচালনা ও নতুন কনটেস্ট</span>
+        </button>
+
         <button
           onClick={() => setActiveTab("PAYOUTS")}
           className={`py-2 px-4 rounded-full text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
@@ -235,7 +305,148 @@ export default function AdminDashboard() {
         </button>
       </div>
 
-      {/* ট্যাব ১: উইথড্র রিকোয়েস্ট টেবিল */}
+      {/* ট্যাব ১: কনটেস্ট পরিচালনা ও নতুন কনটেস্ট ফর্ম */}
+      {activeTab === "CONTESTS" && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          
+          {/* নতুন কনটেস্ট তৈরির ফর্ম (৫ কলাম) */}
+          <div className="lg:col-span-5 bg-white border border-brand-border rounded-3xl p-6 md:p-8 space-y-4 shadow-sm">
+            <div className="flex items-center gap-2 border-b border-brand-border pb-3">
+              <PlusCircle className="w-5 h-5 text-brand-purple" />
+              <h2 className="text-base font-black text-brand-text">নতুন কনটেস্ট চালু করুন</h2>
+            </div>
+
+            {contestStatus && (
+              <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{contestStatus}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleCreateContest} className="space-y-3.5">
+              <div>
+                <label className="text-[11px] font-semibold text-brand-muted block mb-1">কনটেস্টের নাম / থিম</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="যেমন: গোল্ডেন আওয়ার ও সূর্যাস্ত ফটোগ্রাফি"
+                  value={contestTitle}
+                  onChange={(e) => setContestTitle(e.target.value)}
+                  className="w-full bg-slate-50 border border-brand-border rounded-xl px-3.5 py-2.5 text-xs text-brand-text focus:outline-none focus:border-brand-purple font-sans"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-semibold text-brand-muted block mb-1">কনটেস্টের মেয়াদ (Tier)</label>
+                  <select
+                    value={contestTier}
+                    onChange={(e) => {
+                      const tier = e.target.value as any;
+                      setContestTier(tier);
+                      if (tier === "HOURLY_24") setContestPrize("5.00");
+                      if (tier === "WEEKLY_7D") setContestPrize("25.00");
+                      if (tier === "MONTHLY_30D") setContestPrize("100.00");
+                    }}
+                    className="w-full bg-slate-50 border border-brand-border rounded-xl px-3.5 py-2.5 text-xs text-brand-text focus:outline-none focus:border-brand-purple font-sans"
+                  >
+                    <option value="HOURLY_24">২৪ ঘণ্টা (Daily Flash)</option>
+                    <option value="WEEKLY_7D">৭ দিন (Weekly)</option>
+                    <option value="MONTHLY_30D">৩০ দিন (Monthly Grand)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-semibold text-brand-muted block mb-1">প্রাইজমানি ($ USD)</label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    required
+                    value={contestPrize}
+                    onChange={(e) => setContestPrize(e.target.value)}
+                    className="w-full bg-slate-50 border border-brand-border rounded-xl px-3.5 py-2.5 text-xs text-brand-text focus:outline-none focus:border-brand-purple font-mono font-bold"
+                  />
+                  <span className="text-[10px] text-brand-muted block mt-0.5">
+                    আনুমানিক: ৳{toBengaliNumber(Math.round(parseFloat(contestPrize || "0") * 120))} টাকা
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-50 border border-brand-border">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={contestAllowAi}
+                    onChange={(e) => setContestAllowAi(e.target.checked)}
+                    className="w-4 h-4 rounded text-brand-purple focus:ring-0"
+                  />
+                  <span className="text-xs font-bold text-brand-text flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5 text-brand-purple" />
+                    <span>এআই আর্ট (AI Generated Art) জমা নেওয়া অনুমোদন করুন</span>
+                  </span>
+                </label>
+              </div>
+
+              <button
+                type="submit"
+                disabled={contestLoading}
+                className="w-full py-3 rounded-full bg-gradient-to-r from-brand-purple to-brand-deep hover:opacity-95 disabled:opacity-50 text-white font-bold text-xs flex items-center justify-center gap-2 transition-transform active:scale-95 shadow-md shadow-brand-purple/20"
+              >
+                <Trophy className="w-4 h-4 text-brand-gold" />
+                <span>{contestLoading ? "লঞ্চ হচ্ছে..." : "কনটেস্ট লাইভ করুন (Launch Contest)"}</span>
+              </button>
+            </form>
+          </div>
+
+          {/* বর্তমানে চলমান কনটেস্টগুলোর তালিকা (৭ কলাম) */}
+          <div className="lg:col-span-7 bg-white border border-brand-border rounded-3xl p-6 md:p-8 space-y-4 shadow-sm">
+            <div className="flex items-center justify-between border-b border-brand-border pb-3">
+              <h2 className="text-base font-black text-brand-text flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-amber-500" />
+                <span>চলমান ও সম্প্রতি সমাপ্ত কনটেস্টসমূহ</span>
+              </h2>
+              <span className="text-xs font-bold text-brand-muted">
+                মোট: {toBengaliNumber(activeContests.length)}টি
+              </span>
+            </div>
+
+            <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1 no-scrollbar">
+              {activeContests.length === 0 ? (
+                <div className="text-center py-10 text-brand-muted text-xs">
+                  কোনো কনটেস্ট পাওয়া যায়নি।
+                </div>
+              ) : (
+                activeContests.map((c) => (
+                  <div key={c.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                          c.status === "ACTIVE" ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-700"
+                        }`}>
+                          {c.status === "ACTIVE" ? "চলমান (ACTIVE)" : "সমাপ্ত (COMPLETED)"}
+                        </span>
+                        <span className="text-[10px] text-brand-muted uppercase font-bold">{c.tier}</span>
+                      </div>
+                      <h4 className="text-xs font-bold text-brand-text">{c.title}</h4>
+                      <div className="text-[11px] text-brand-muted">
+                        মোট জমা: <b>{toBengaliNumber(c._count?.entries || 0)}টি ছবি</b> &bull; শেষ: {new Date(c.endTime).toLocaleDateString()}
+                      </div>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <span className="text-xs text-brand-muted block font-semibold">প্রাইজমানি</span>
+                      <span className="text-base font-black text-emerald-600 font-mono">${toBengaliNumber(c.prizePool)}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+        </div>
+      )}
+
+      {/* ট্যাব ২: উইথড্র রিকোয়েস্ট টেবিল */}
       {activeTab === "PAYOUTS" && (
         <div className="bg-white border border-brand-border rounded-3xl overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
@@ -282,7 +493,7 @@ export default function AdminDashboard() {
                         </button>
                         <button
                           onClick={() => handlePayoutAction(item.id, "REJECT")}
-                          className="px-3 py-1.5 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold text-xs inline-flex items-center gap-1 transition-colors"
+                          className="px-3.5 py-1.5 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold text-xs inline-flex items-center gap-1 transition-colors"
                         >
                           <XCircle className="w-3.5 h-3.5" />
                           <span>বাতিল ও ফেরত</span>
@@ -297,7 +508,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* ট্যাব ২: লাইভ নোটিশ প্রকাশ */}
+      {/* ট্যাব ৩: লাইভ নোটিশ প্রকাশ */}
       {activeTab === "NOTICES" && (
         <div className="max-w-2xl bg-white border border-brand-border rounded-3xl p-6 md:p-8 space-y-5 shadow-sm">
           <div className="flex items-center gap-2 border-b border-brand-border pb-3">
@@ -351,7 +562,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* ট্যাব ৩: পেমেন্ট প্রুফ আপলোড */}
+      {/* ট্যাব ৪: পেমেন্ট প্রুফ আপলোড */}
       {activeTab === "PROOFS" && (
         <div className="max-w-2xl bg-white border border-brand-border rounded-3xl p-6 md:p-8 space-y-5 shadow-sm">
           <div className="flex items-center gap-2 border-b border-brand-border pb-3">
