@@ -71,6 +71,10 @@ export default function HomeExperience({
   const [photoList, setPhotoList] = useState(initialPhotos);
   const [mounted, setMounted] = useState(false);
 
+  useEffect(() => {
+    setPhotoList(initialPhotos);
+  }, [initialPhotos]);
+
   // ডাইনামিক হিরো স্লাইডার
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const heroSlides = photoList.length > 0 ? photoList.slice(0, 5) : [];
@@ -317,7 +321,7 @@ export default function HomeExperience({
         alert(data.error);
       }
     } catch {
-      alert("প্রোফাইল আপডেট ব্যর্থ হয়েছে।");
+      alert("Failed to update profile.");
     } finally {
       setProfileLoading(false);
     }
@@ -407,14 +411,11 @@ export default function HomeExperience({
     }
   };
 
+  // প্রতিটি ছবির জন্য ডাটাবেসের আসল ইমেজ সরাসরি রিটার্ন
   const getPhotoUrl = (photo: any) => {
-    if (!photo) return "https://images.unsplash.com/photo-1561731216-c3a4d99437d5?w=1600";
+    if (!photo) return "https://images.unsplash.com/photo-1561731216-c3a4d99437d5?w=1200&h=675&fit=crop";
     if (photo.imageUrl) return photo.imageUrl;
-    if (photo.title?.includes("Padma")) return "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1600";
-    if (photo.title?.includes("Rickshaw")) return "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1600";
-    if (photo.title?.includes("Cyberpunk")) return "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1600";
-    if (photo.title?.includes("Tiger")) return "https://images.unsplash.com/photo-1561731216-c3a4d99437d5?w=1600";
-    return photo.imageUrl || "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1600";
+    return "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1200&h=675&fit=crop";
   };
 
   // সার্চ ও ফিল্টার
@@ -458,9 +459,7 @@ export default function HomeExperience({
     <div className="space-y-6 md:space-y-8">
       <SocialBar />
 
-      {/* ==================================================== */}
-      {/* ১. টপ হেডার বার                                      */}
-      {/* ==================================================== */}
+      {/* ১. টপ হেডার বার */}
       <header className="bg-white border-b border-brand-border sticky top-0 z-40 shadow-sm">
         <div className="max-w-[1440px] mx-auto px-4 md:px-8 h-18 py-2.5 flex items-center justify-between gap-3">
           
@@ -623,9 +622,7 @@ export default function HomeExperience({
         </div>
       </header>
 
-      {/* ==================================================== */}
-      {/* ২. মেইন ন্যাভিগেশন রিবন                               */}
-      {/* ==================================================== */}
+      {/* ২. মেইন ন্যাভিগেশন রিবন */}
       <nav className="bg-white/90 backdrop-blur-md border-b border-brand-border sticky top-18 z-30 hidden md:block">
         <div className="max-w-[1440px] mx-auto px-4 md:px-8 h-12 flex items-center justify-between">
           <div className="flex items-center gap-1 lg:gap-2 text-xs font-bold text-brand-muted">
@@ -719,9 +716,7 @@ export default function HomeExperience({
         </div>
       </nav>
 
-      {/* ==================================================== */}
-      {/* ৩. হিরো স্লাইডার ও সাইডবার                            */}
-      {/* ==================================================== */}
+      {/* ৩. হিরো স্লাইডার ও সাইডবার */}
       <div className="max-w-[1440px] mx-auto px-4 md:px-8 space-y-6 md:space-y-8">
         
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
@@ -935,9 +930,7 @@ export default function HomeExperience({
 
         </section>
 
-        {/* ==================================================== */}
-        {/* ৪. চলমান কনটেস্টসমূহ ও ক্যাটাগরি ম্যাট্রিক্স            */}
-        {/* ==================================================== */}
+        {/* ৪. চলমান কনটেস্টসমূহ ও ক্যাটাগরি ম্যাট্রিক্স */}
         <section id="ongoing-contests" className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           
           <div className="lg:col-span-8 space-y-3">
@@ -958,7 +951,6 @@ export default function HomeExperience({
               </button>
             </div>
 
-            {/* ৩টি ব্যালেন্সড ডাইনামিক কার্ড */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {(() => {
                 const c24 = contests.filter((c: any) => c.tier === "HOURLY_24").slice(-1)[0];
@@ -1064,7 +1056,7 @@ export default function HomeExperience({
                     <div className={`w-8 h-8 rounded-xl ${f.bg} flex items-center justify-center ${f.color}`}>
                       <Icon className="w-4 h-4 stroke-[2.5]" />
                     </div>
-                    <span className={`text-[11px] font-bold ${isActive ? "text-brand-purple" : "text-brand-text"}`}>
+                    <span className={`text-[10px] font-bold ${isActive ? "text-brand-purple" : "text-brand-text"}`}>
                       {f.label}
                     </span>
                   </button>
@@ -1097,11 +1089,10 @@ export default function HomeExperience({
 
         </section>
 
-        {/* ==================================================== */}
-        {/* ৫. ট্রেন্ডিং ফটো গ্যালারি ও লিডারবোর্ড               */}
-        {/* ==================================================== */}
+        {/* ৫. ট্রেন্ডিং ফটো গ্যালারি ও ডানপাশে স্টিকি লিডারবোর্ড */}
         <section id="trending-gallery" className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           
+          {/* গ্যালারি ছবিসমূহ (৮ কলাম) */}
           <div className="lg:col-span-8 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-base md:text-xl font-black text-brand-text flex items-center gap-2">
@@ -1113,154 +1104,186 @@ export default function HomeExperience({
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="columns-1 sm:columns-2 md:columns-3 gap-4 space-y-4">
               {filteredPhotos.map((photo) => {
                 const isPortrait = photo.aspectRatio === "RATIO_9_16";
                 return (
                   <div
                     key={photo.id}
-                    className="group rounded-3xl overflow-hidden bg-brand-surface border border-brand-border shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
+                    onClick={() => setPreviewPhoto(photo)}
+                    className={`group relative rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 cursor-pointer bg-slate-900 border border-brand-border break-inside-avoid mb-4 ${
+  isPortrait ? "aspect-[9/16]" : "aspect-[16/10]"
+}`}
                   >
-                    <div
-                      onClick={() => setPreviewPhoto(photo)}
-                      className="relative cursor-pointer overflow-hidden bg-slate-100"
-                    >
-                      <div className="absolute top-2.5 left-2.5 right-2.5 z-10 flex items-center justify-between pointer-events-none">
-                        <div className="flex gap-1.5">
-                          <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-white font-mono">
-                            {isPortrait ? "৯:১৬" : "১৬:৯"}
-                          </span>
-                          {photo.isAiGenerated && (
-                            <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-purple text-white shadow-md">
-                              <Sparkles className="w-2.5 h-2.5" /> AI
-                            </span>
-                          )}
-                        </div>
+                    <img
+                      src={getPhotoUrl(photo)}
+                      alt={photo.title}
+                      className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-700 ease-out"
+                      loading="lazy"
+                    />
 
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500 text-white">
-                          {photo.isFree ? t.gallery.badgeFree : t.gallery.badgePremium}
+                    <div className="absolute top-2.5 left-2.5 right-2.5 z-10 flex items-center justify-between pointer-events-none group-hover:opacity-0 transition-opacity duration-200">
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-black/50 backdrop-blur-md text-white font-mono">
+                        {isPortrait ? "৯:১৬" : "১৬:৯"}
+                      </span>
+                      {photo.isAiGenerated && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-purple/90 text-white shadow-sm flex items-center gap-1">
+                          <Sparkles className="w-2.5 h-2.5" /> AI
                         </span>
-                      </div>
-
-                      <div className={`relative w-full ${isPortrait ? "aspect-[9/16]" : "aspect-[16/9]"}`}>
-                        <img
-                          src={getPhotoUrl(photo)}
-                          alt={photo.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          loading="lazy"
-                        />
-                      </div>
+                      )}
                     </div>
 
-                    <div className="p-3.5 space-y-2.5">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex flex-col justify-between text-white z-20">
+                      
                       <div className="flex items-center justify-between">
-                        <div className="max-w-[140px] md:max-w-[170px]">
-                          <h4 className="text-xs font-bold text-brand-text truncate">{photo.title}</h4>
-                          <div className="flex items-center gap-1 mt-0.5">
+                        <div className="flex gap-1.5">
+                          <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-md text-white">
+                            {isPortrait ? "৯:১৬ পোর্ট্রেট" : "১৬:৯ ল্যান্ডস্কেপ"}
+                          </span>
+                          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500 text-white">
+                            {photo.isFree ? t.gallery.badgeFree : t.gallery.badgePremium}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDownloadPhoto(photo);
+                            }}
+                            className="p-1.5 rounded-full bg-white/20 hover:bg-white text-white hover:text-brand-purple transition-all shadow-md active:scale-90"
+                            title="Download Resolutions"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                          </button>
+                          <div className="p-1.5 rounded-full bg-white/20 text-white">
+                            <Maximize2 className="w-3.5 h-3.5" />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div>
+                          <h4 className="text-sm font-bold text-white drop-shadow-md truncate">
+                            {photo.title}
+                          </h4>
+                          <div className="flex items-center gap-1.5 mt-0.5 text-xs text-slate-300">
                             {photo.user?.avatarUrl ? (
                               <img
                                 src={photo.user.avatarUrl}
                                 alt={photo.user.name}
-                                className="w-4 h-4 rounded-full object-cover"
+                                className="w-4 h-4 rounded-full object-cover border border-amber-400"
                               />
                             ) : (
                               <div className="w-4 h-4 rounded-full bg-brand-gold text-brand-text font-black text-[8px] flex items-center justify-center">
                                 {photo.user?.name ? photo.user.name.charAt(0).toUpperCase() : "U"}
                               </div>
                             )}
-                            <span className="text-[11px] text-brand-muted font-bold truncate">{photo.user?.name}</span>
-                            {photo.user?.badge === "BLUE_VERIFIED" && <CheckCircle className="w-3.5 h-3.5 text-sky-500" />}
+                            <span className="font-semibold truncate">{photo.user?.name}</span>
+                            {photo.user?.badge === "BLUE_VERIFIED" && <CheckCircle className="w-3.5 h-3.5 text-sky-400 fill-sky-400/20" />}
                             {photo.user?.badge === "FIRE_CREATOR" && <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500" />}
                           </div>
                         </div>
 
                         <button
-                          onClick={() => setDownloadPhoto(photo)}
-                          className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-brand-muted hover:text-brand-purple transition-colors border border-brand-border"
-                          title={t.gallery.downloadBtnTitle}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setVotingPhoto(photo);
+                          }}
+                          disabled={photo.hasVoted}
+                          className={`w-full py-2 px-3 rounded-full text-xs font-black flex items-center justify-center gap-1.5 transition-transform active:scale-95 shadow-lg ${
+                            photo.hasVoted
+                              ? "bg-rose-500/80 text-white cursor-default"
+                              : "bg-white hover:bg-rose-500 text-slate-900 hover:text-white"
+                          }`}
                         >
-                          <Download className="w-4 h-4" />
+                          <Heart className={`w-3.5 h-3.5 ${photo.hasVoted ? "fill-white text-white" : "fill-rose-500 text-rose-500"}`} />
+                          <span>{photo.hasVoted ? t.gallery.votedBtn : t.gallery.voteBtn}</span>
+                          <span className="opacity-40">&bull;</span>
+                          <span className="font-mono">{toBengaliNumber(photo.voteCount || 0)}</span>
                         </button>
                       </div>
 
-                      <button
-                        onClick={() => setVotingPhoto(photo)}
-                        disabled={photo.hasVoted}
-                        className={`w-full py-2 px-3 rounded-full text-xs font-bold flex items-center justify-center gap-1.5 transition-transform active:scale-95 ${
-                          photo.hasVoted
-                            ? "bg-rose-50 text-rose-500 border border-rose-200"
-                            : "bg-slate-50 hover:bg-rose-50 hover:text-rose-500 text-brand-muted border border-brand-border"
-                        }`}
-                      >
-                        <Heart className={`w-3.5 h-3.5 ${photo.hasVoted ? "fill-rose-500 text-rose-500" : ""}`} />
-                        <span>{photo.hasVoted ? t.gallery.votedBtn : t.gallery.voteBtn}</span>
-                        <span className="opacity-40">&bull;</span>
-                        <span className="font-bold">{toBengaliNumber(photo.voteCount || 0)}</span>
-                      </button>
                     </div>
-
                   </div>
                 );
               })}
             </div>
           </div>
 
-          <div id="leaderboard-section" className="lg:col-span-4 bg-white p-5 rounded-3xl border border-brand-border shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b border-brand-border pb-3">
-              <h3 className="text-sm font-black text-brand-text flex items-center gap-2">
-                <Trophy className="w-4 h-4 text-brand-gold" />
-                <span>{t.leaderboard.title}</span>
-              </h3>
-              <Link href="/hall-of-fame" className="text-[11px] font-bold text-brand-purple hover:underline flex items-center gap-1">
-                <span>{t.leaderboard.viewAll}</span>
-                <ArrowRight className="w-3 h-3" />
-              </Link>
-            </div>
+          {/* ডানপাশের স্টিকি লিডারবোর্ড ও স্পন্সর উইজেট */}
+          <div className="lg:col-span-4 sticky top-20 space-y-4">
+            
+            <div id="leaderboard-section" className="bg-white p-5 rounded-3xl border border-brand-border shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-brand-border pb-3">
+                <h3 className="text-sm font-black text-brand-text flex items-center gap-2">
+                  <Trophy className="w-4 h-4 text-brand-gold" />
+                  <span>{t.leaderboard.title}</span>
+                </h3>
+                <Link href="/hall-of-fame" className="text-[11px] font-bold text-brand-purple hover:underline flex items-center gap-1">
+                  <span>{t.leaderboard.viewAll}</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
 
-            <div className="space-y-3">
-              {leaderboardCreators.map((creator: any, index: number) => (
-                <div key={creator.id || index} className="flex items-center justify-between gap-3 text-xs">
-                  <div className="flex items-center gap-2.5">
-                    <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] ${
-                      index === 0 ? "bg-amber-400 text-brand-text" : index === 1 ? "bg-slate-200 text-slate-700" : index === 2 ? "bg-amber-100 text-amber-900" : "text-brand-muted"
-                    }`}>
-                      {toBengaliNumber(index + 1)}
-                    </span>
+              <div className="space-y-3">
+                {leaderboardCreators.map((creator: any, index: number) => (
+                  <div key={creator.id || index} className="flex items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-2.5">
+                      <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] ${
+                        index === 0 ? "bg-amber-400 text-brand-text" : index === 1 ? "bg-slate-200 text-slate-700" : index === 2 ? "bg-amber-100 text-amber-900" : "text-brand-muted"
+                      }`}>
+                        {toBengaliNumber(index + 1)}
+                      </span>
 
-                    {creator.avatarUrl ? (
-                      <img
-                        src={creator.avatarUrl}
-                        alt={creator.name}
-                        className="w-7 h-7 rounded-full object-cover border border-brand-border"
-                      />
-                    ) : (
-                      <div className="w-7 h-7 rounded-full bg-slate-100 font-bold text-xs flex items-center justify-center text-brand-purple">
-                        {creator.name?.charAt(0) || "U"}
-                      </div>
-                    )}
+                      {creator.avatarUrl ? (
+                        <img
+                          src={creator.avatarUrl}
+                          alt={creator.name}
+                          className="w-7 h-7 rounded-full object-cover border border-brand-border"
+                        />
+                      ) : (
+                        <div className="w-7 h-7 rounded-full bg-slate-100 font-bold text-xs flex items-center justify-center text-brand-purple">
+                          {creator.name?.charAt(0) || "U"}
+                        </div>
+                      )}
 
-                    <div>
-                      <div className="flex items-center gap-1 font-bold text-brand-text truncate max-w-[110px]">
-                        <span>{creator.name}</span>
-                        {creator.badge === "BLUE_VERIFIED" && <CheckCircle className="w-3.5 h-3.5 text-sky-500" />}
-                        {creator.badge === "FIRE_CREATOR" && <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500" />}
+                      <div>
+                        <div className="flex items-center gap-1 font-bold text-brand-text truncate max-w-[110px]">
+                          <span>{creator.name}</span>
+                          {creator.badge === "BLUE_VERIFIED" && <CheckCircle className="w-3.5 h-3.5 text-sky-500" />}
+                          {creator.badge === "FIRE_CREATOR" && <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500" />}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <span className="font-bold text-brand-purple">
-                    {toBengaliNumber(creator.votes || 0)} {t.leaderboard.votesSuffix}
-                  </span>
-                </div>
-              ))}
+                    <span className="font-bold text-brand-purple">
+                      {toBengaliNumber(creator.votes || 0)} {t.leaderboard.votesSuffix}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
+
+            <div
+              onClick={triggerAdsterraDirectLink}
+              className="p-4 rounded-3xl bg-white border border-brand-border shadow-sm text-center space-y-2 cursor-pointer hover:border-brand-purple/40 transition-colors"
+            >
+              <div className="flex items-center justify-between text-[10px] uppercase font-bold text-brand-muted">
+                <span>স্পন্সরড বিজ্ঞাপন</span>
+                <ExternalLink className="w-3.5 h-3.5 text-brand-purple" />
+              </div>
+              <div className="h-44 bg-slate-50 rounded-2xl flex flex-col items-center justify-center text-xs text-brand-muted font-bold border border-dashed border-slate-200 space-y-1">
+                <span className="text-brand-purple font-black">Adsterra Premium Partner</span>
+                <span className="text-[10px] text-slate-400">[Click to View Offer &bull; 300x250]</span>
+              </div>
+            </div>
+
           </div>
 
         </section>
 
-        {/* ==================================================== */}
-        {/* ৬. ট্রাস্ট ব্যানার ও "চ্যাম্পিয়ন হোন" সিটিএ           */}
-        {/* ==================================================== */}
+        {/* ৬. ট্রাস্ট ব্যানার ও "চ্যাম্পিয়ন হোন" সিটিএ */}
         <section className="space-y-4 pt-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="flex items-center gap-3 p-4 rounded-2xl bg-white border border-brand-border shadow-sm">
@@ -1324,9 +1347,7 @@ export default function HomeExperience({
 
       </div>
 
-      {/* ==================================================== */}
-      {/* ৭. ফিক্সড মোবাইল বটম ন্যাভিগেশন বার                    */}
-      {/* ==================================================== */}
+      {/* ৭. ফিক্সড মোবাইল বটম ন্যাভিগেশন বার */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-brand-border md:hidden safe-area-bottom pb-safe">
         <div className="flex items-center justify-around h-16 px-2 relative">
           
@@ -1391,9 +1412,7 @@ export default function HomeExperience({
         </div>
       </nav>
 
-      {/* ==================================================== */}
-      {/* ৮. ফুলস্ক্রিন লাইটবক্স প্রিভিউ মোডাল                   */}
-      {/* ==================================================== */}
+      {/* ৮. ফুলস্ক্রিন লাইটবক্স প্রিভিউ মোডাল */}
       {previewPhoto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-2xl p-4 md:p-8 animate-in fade-in duration-200">
           <button
@@ -1469,7 +1488,9 @@ export default function HomeExperience({
 
               <div className="space-y-2.5 pt-4 border-t border-zinc-900">
                 <button
-                  onClick={() => setVotingPhoto(previewPhoto)}
+                  onClick={() => {
+                    setVotingPhoto(previewPhoto);
+                  }}
                   disabled={previewPhoto.hasVoted}
                   className={`w-full py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-transform active:scale-95 ${
                     previewPhoto.hasVoted
@@ -1482,7 +1503,9 @@ export default function HomeExperience({
                 </button>
 
                 <button
-                  onClick={() => setDownloadPhoto(previewPhoto)}
+                  onClick={() => {
+                    setDownloadPhoto(previewPhoto);
+                  }}
                   className="w-full py-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-xs flex items-center justify-center gap-2 border border-zinc-800 transition-colors"
                 >
                   <Download className="w-4 h-4" />
@@ -1494,9 +1517,7 @@ export default function HomeExperience({
         </div>
       )}
 
-      {/* ==================================================== */}
-      {/* ৯. মোডাল: ফটো আপলোডার                               */}
-      {/* ==================================================== */}
+      {/* ৯. মোডাল: ফটো আপলোডার */}
       {isUploadModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 text-brand-text space-y-4 shadow-2xl relative max-h-[90vh] overflow-y-auto no-scrollbar border border-brand-border">
@@ -1630,9 +1651,7 @@ export default function HomeExperience({
         </div>
       )}
 
-      {/* ==================================================== */}
-      {/* ১০. মোডাল: প্রোফাইল এডিটর                           */}
-      {/* ==================================================== */}
+      {/* ১০. মোডাল: প্রোফাইল এডিটর */}
       {isProfileModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
           <div className="bg-white border border-brand-border rounded-3xl max-w-md w-full p-6 text-brand-text space-y-4 shadow-2xl relative">
@@ -1742,9 +1761,7 @@ export default function HomeExperience({
         </div>
       )}
 
-      {/* ==================================================== */}
-      {/* ১১. মোডাল: পেমেন্ট প্রুফ লাইটবক্স                   */}
-      {/* ==================================================== */}
+      {/* ১১. মোডাল: পেমেন্ট প্রুফ লাইটবক্স */}
       {viewingProof && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-xl p-4">
           <div className="bg-zinc-950 border border-zinc-800 rounded-3xl max-w-sm w-full p-5 text-white space-y-4 shadow-2xl relative text-center">
@@ -1770,9 +1787,7 @@ export default function HomeExperience({
         </div>
       )}
 
-      {/* ==================================================== */}
-      {/* ১২. মোডাল: ইউজার অথ (রেজিস্ট্রেশন ও লগইন)            */}
-      {/* ==================================================== */}
+      {/* ১২. মোডাল: ইউজার অথ (রেজিস্ট্রেশন ও লগইন) */}
       {isAuthModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
           <div className="bg-white border border-brand-border rounded-3xl max-w-sm w-full p-6 text-brand-text space-y-4 shadow-2xl relative">
@@ -1859,9 +1874,7 @@ export default function HomeExperience({
         </div>
       )}
 
-      {/* ==================================================== */}
-      {/* ১৩. মোডাল: স্পন্সরড ভোটিং অ্যাড-গেট                   */}
-      {/* ==================================================== */}
+      {/* ১৩. মোডাল: স্পন্সরড ভোটিং অ্যাড-গেট */}
       {votingPhoto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
           <div className="bg-white border border-brand-border rounded-3xl max-w-md w-full p-6 text-brand-text space-y-4 shadow-2xl relative text-center">
@@ -1930,9 +1943,7 @@ export default function HomeExperience({
         </div>
       )}
 
-      {/* ==================================================== */}
-      {/* ১৪. মোডাল: ৪-লেয়ার ছবির কোয়ালিটি ও ডাউনলোড           */}
-      {/* ==================================================== */}
+      {/* ১৪. মোডাল: ৪-লেয়ার ছবির কোয়ালিটি ও ডাউনলোড */}
       {downloadPhoto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
           <div className="bg-white border border-brand-border rounded-3xl max-w-md w-full p-6 text-brand-text space-y-4 shadow-2xl">
