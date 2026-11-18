@@ -4,19 +4,24 @@ import { useEffect } from "react";
 
 export default function SocialBar() {
   useEffect(() => {
-    const key = process.env.NEXT_PUBLIC_ADSTERRA_SOCIAL_BAR_KEY;
-    if (!key || key.includes("your_social_bar_key")) return;
+    const key = process.env.NEXT_PUBLIC_ADSTERRA_SOCIAL_BAR_KEY || "32346419";
+    if (!key) return;
 
+    // Adsterra Social Bar script loader
     const script = document.createElement("script");
     script.type = "text/javascript";
-    script.src = `//pl${key}.profitablecpmrate.com/${key}/invoke.js`;
+    script.src = `//www.highperformanceformat.com/${key}/invoke.js`;
     script.async = true;
     document.body.appendChild(script);
 
     return () => {
-      document.body.removeChild(script);
+      try {
+        document.body.removeChild(script);
+      } catch {
+        // ignore if already removed
+      }
     };
   }, []);
 
-  return null; // Renders floating overlays directly via Adsterra's script
+  return null;
 }
