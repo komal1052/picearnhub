@@ -48,6 +48,7 @@ import {
   Users
 } from "lucide-react";
 import SocialBar from "./SocialBar";
+import AdSlot from "./ads/AdSlot";
 import { t } from "@/lib/translations";
 import { toBengaliNumber, toBengaliDate } from "@/lib/formatters";
 
@@ -162,8 +163,8 @@ export default function HomeExperience({
   }, [proofs.length]);
 
   const triggerAdsterraDirectLink = () => {
-    const directLink = process.env.NEXT_PUBLIC_ADSTERRA_DIRECT_LINK;
-    if (directLink && !directLink.includes("your_direct_link")) {
+    const directLink = process.env.NEXT_PUBLIC_ADSTERRA_DIRECT_LINK || "https://asiafilm.org/4/2a484ad42c374471ff9da78604cdb7d8";
+    if (directLink) {
       window.open(directLink, "_blank", "noopener,noreferrer");
     }
   };
@@ -321,7 +322,7 @@ export default function HomeExperience({
         alert(data.error);
       }
     } catch {
-      alert("Failed to update profile.");
+      alert("প্রোফাইল আপডেট ব্যর্থ হয়েছে।");
     } finally {
       setProfileLoading(false);
     }
@@ -411,7 +412,6 @@ export default function HomeExperience({
     }
   };
 
-  // প্রতিটি ছবির জন্য ডাটাবেসের আসল ইমেজ সরাসরি রিটার্ন
   const getPhotoUrl = (photo: any) => {
     if (!photo) return "https://images.unsplash.com/photo-1561731216-c3a4d99437d5?w=1200&h=675&fit=crop";
     if (photo.imageUrl) return photo.imageUrl;
@@ -459,7 +459,9 @@ export default function HomeExperience({
     <div className="space-y-6 md:space-y-8">
       <SocialBar />
 
-      {/* ১. টপ হেডার বার */}
+      {/* ==================================================== */}
+      {/* ১. টপ হেডার বার                                      */}
+      {/* ==================================================== */}
       <header className="bg-white border-b border-brand-border sticky top-0 z-40 shadow-sm">
         <div className="max-w-[1440px] mx-auto px-4 md:px-8 h-18 py-2.5 flex items-center justify-between gap-3">
           
@@ -622,7 +624,9 @@ export default function HomeExperience({
         </div>
       </header>
 
-      {/* ২. মেইন ন্যাভিগেশন রিবন */}
+      {/* ==================================================== */}
+      {/* ২. মেইন ন্যাভিগেশন রিবন                               */}
+      {/* ==================================================== */}
       <nav className="bg-white/90 backdrop-blur-md border-b border-brand-border sticky top-18 z-30 hidden md:block">
         <div className="max-w-[1440px] mx-auto px-4 md:px-8 h-12 flex items-center justify-between">
           <div className="flex items-center gap-1 lg:gap-2 text-xs font-bold text-brand-muted">
@@ -716,7 +720,9 @@ export default function HomeExperience({
         </div>
       </nav>
 
-      {/* ৩. হিরো স্লাইডার ও সাইডবার */}
+      {/* ==================================================== */}
+      {/* ৩. হিরো স্লাইডার ও সাইডবার                            */}
+      {/* ==================================================== */}
       <div className="max-w-[1440px] mx-auto px-4 md:px-8 space-y-6 md:space-y-8">
         
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
@@ -829,6 +835,7 @@ export default function HomeExperience({
             </div>
           </div>
 
+          {/* সাইডবার: নোটিশ বোর্ড ও পেমেন্ট প্রুফ + অ্যাডস্লট */}
           <div className="lg:col-span-4 rounded-3xl bg-white border border-brand-border p-5 flex flex-col justify-between shadow-sm space-y-4">
             <div className="space-y-3">
               <div className="flex items-center justify-between border-b border-brand-border pb-2.5">
@@ -913,24 +920,17 @@ export default function HomeExperience({
               )}
             </div>
 
-            <div
-              onClick={triggerAdsterraDirectLink}
-              className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-1 cursor-pointer hover:border-brand-purple/40 transition-colors"
-            >
-              <div className="flex items-center justify-between text-[9px] uppercase tracking-widest text-brand-muted font-bold">
-                <span>{t.sidebar.adTitle}</span>
-                <ExternalLink className="w-3 h-3 text-brand-purple" />
-              </div>
-              <div className="h-28 bg-white rounded-xl flex flex-col items-center justify-center text-xs text-brand-muted font-bold border border-dashed border-slate-200 space-y-1 shadow-inner">
-                <span className="text-brand-purple font-bold">{t.sidebar.adSubtitle}</span>
-                <span className="text-[10px] text-slate-400">{t.sidebar.adClickNotice}</span>
-              </div>
+            {/* আসল Adsterra 300x250 স্লট */}
+            <div className="rounded-2xl bg-slate-50 border border-slate-200 p-1 flex items-center justify-center overflow-hidden">
+              <AdSlot zoneId="32346376" width={300} height={250} />
             </div>
           </div>
 
         </section>
 
-        {/* ৪. চলমান কনটেস্টসমূহ ও ক্যাটাগরি ম্যাট্রিক্স */}
+        {/* ==================================================== */}
+        {/* ৪. চলমান কনটেস্টসমূহ ও ক্যাটাগরি ম্যাট্রিক্স            */}
+        {/* ==================================================== */}
         <section id="ongoing-contests" className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           
           <div className="lg:col-span-8 space-y-3">
@@ -951,6 +951,7 @@ export default function HomeExperience({
               </button>
             </div>
 
+            {/* ৩টি ব্যালেন্সড ডাইনামিক কার্ড */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {(() => {
                 const c24 = contests.filter((c: any) => c.tier === "HOURLY_24").slice(-1)[0];
@@ -1056,7 +1057,7 @@ export default function HomeExperience({
                     <div className={`w-8 h-8 rounded-xl ${f.bg} flex items-center justify-center ${f.color}`}>
                       <Icon className="w-4 h-4 stroke-[2.5]" />
                     </div>
-                    <span className={`text-[10px] font-bold ${isActive ? "text-brand-purple" : "text-brand-text"}`}>
+                    <span className={`text-[11px] font-bold ${isActive ? "text-brand-purple" : "text-brand-text"}`}>
                       {f.label}
                     </span>
                   </button>
@@ -1089,10 +1090,11 @@ export default function HomeExperience({
 
         </section>
 
+        {/* ==================================================== */}
         {/* ৫. ট্রেন্ডিং ফটো গ্যালারি ও ডানপাশে স্টিকি লিডারবোর্ড */}
+        {/* ==================================================== */}
         <section id="trending-gallery" className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           
-          {/* গ্যালারি ছবিসমূহ (৮ কলাম) */}
           <div className="lg:col-span-8 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-base md:text-xl font-black text-brand-text flex items-center gap-2">
@@ -1112,8 +1114,8 @@ export default function HomeExperience({
                     key={photo.id}
                     onClick={() => setPreviewPhoto(photo)}
                     className={`group relative rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 cursor-pointer bg-slate-900 border border-brand-border break-inside-avoid mb-4 ${
-  isPortrait ? "aspect-[9/16]" : "aspect-[16/10]"
-}`}
+                      isPortrait ? "aspect-[9/16]" : "aspect-[16/10]"
+                    }`}
                   >
                     <img
                       src={getPhotoUrl(photo)}
@@ -1137,10 +1139,10 @@ export default function HomeExperience({
                       
                       <div className="flex items-center justify-between">
                         <div className="flex gap-1.5">
-                          <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-md text-white">
+                          <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-white/20 backdrop-blur-md text-white">
                             {isPortrait ? "৯:১৬ পোর্ট্রেট" : "১৬:৯ ল্যান্ডস্কেপ"}
                           </span>
-                          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500 text-white">
+                          <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-500 text-white">
                             {photo.isFree ? t.gallery.badgeFree : t.gallery.badgePremium}
                           </span>
                         </div>
@@ -1211,7 +1213,7 @@ export default function HomeExperience({
             </div>
           </div>
 
-          {/* ডানপাশের স্টিকি লিডারবোর্ড ও স্পন্সর উইজেট */}
+          {/* ডানপাশের স্টিকি লিডারবোর্ড ও আসল Adsterra ব্যানার */}
           <div className="lg:col-span-4 sticky top-20 space-y-4">
             
             <div id="leaderboard-section" className="bg-white p-5 rounded-3xl border border-brand-border shadow-sm space-y-4">
@@ -1222,7 +1224,7 @@ export default function HomeExperience({
                 </h3>
                 <Link href="/hall-of-fame" className="text-[11px] font-bold text-brand-purple hover:underline flex items-center gap-1">
                   <span>{t.leaderboard.viewAll}</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  <ArrowRight className="w-3 h-3" />
                 </Link>
               </div>
 
@@ -1265,25 +1267,18 @@ export default function HomeExperience({
               </div>
             </div>
 
-            <div
-              onClick={triggerAdsterraDirectLink}
-              className="p-4 rounded-3xl bg-white border border-brand-border shadow-sm text-center space-y-2 cursor-pointer hover:border-brand-purple/40 transition-colors"
-            >
-              <div className="flex items-center justify-between text-[10px] uppercase font-bold text-brand-muted">
-                <span>স্পন্সরড বিজ্ঞাপন</span>
-                <ExternalLink className="w-3.5 h-3.5 text-brand-purple" />
-              </div>
-              <div className="h-44 bg-slate-50 rounded-2xl flex flex-col items-center justify-center text-xs text-brand-muted font-bold border border-dashed border-slate-200 space-y-1">
-                <span className="text-brand-purple font-black">Adsterra Premium Partner</span>
-                <span className="text-[10px] text-slate-400">[Click to View Offer &bull; 300x250]</span>
-              </div>
+            {/* আসল Adsterra ব্যানার */}
+            <div className="rounded-3xl bg-white border border-brand-border p-2 shadow-sm flex items-center justify-center overflow-hidden">
+              <AdSlot zoneId="32346376" width={300} height={250} />
             </div>
 
           </div>
 
         </section>
 
-        {/* ৬. ট্রাস্ট ব্যানার ও "চ্যাম্পিয়ন হোন" সিটিএ */}
+        {/* ==================================================== */}
+        {/* ৬. ট্রাস্ট ব্যানার ও "চ্যাম্পিয়ন হোন" সিটিএ           */}
+        {/* ==================================================== */}
         <section className="space-y-4 pt-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="flex items-center gap-3 p-4 rounded-2xl bg-white border border-brand-border shadow-sm">
@@ -1347,7 +1342,9 @@ export default function HomeExperience({
 
       </div>
 
-      {/* ৭. ফিক্সড মোবাইল বটম ন্যাভিগেশন বার */}
+      {/* ==================================================== */}
+      {/* ৭. ফিক্সড মোবাইল বটম ন্যাভিগেশন বার                    */}
+      {/* ==================================================== */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-brand-border md:hidden safe-area-bottom pb-safe">
         <div className="flex items-center justify-around h-16 px-2 relative">
           
@@ -1412,7 +1409,9 @@ export default function HomeExperience({
         </div>
       </nav>
 
-      {/* ৮. ফুলস্ক্রিন লাইটবক্স প্রিভিউ মোডাল */}
+      {/* ==================================================== */}
+      {/* ৮. ফুলস্ক্রিন লাইটবক্স প্রিভিউ মোডাল                   */}
+      {/* ==================================================== */}
       {previewPhoto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-2xl p-4 md:p-8 animate-in fade-in duration-200">
           <button
@@ -1517,7 +1516,9 @@ export default function HomeExperience({
         </div>
       )}
 
-      {/* ৯. মোডাল: ফটো আপলোডার */}
+      {/* ==================================================== */}
+      {/* ৯. মোডাল: ফটো আপলোডার                               */}
+      {/* ==================================================== */}
       {isUploadModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 text-brand-text space-y-4 shadow-2xl relative max-h-[90vh] overflow-y-auto no-scrollbar border border-brand-border">
@@ -1651,7 +1652,9 @@ export default function HomeExperience({
         </div>
       )}
 
-      {/* ১০. মোডাল: প্রোফাইল এডিটর */}
+      {/* ==================================================== */}
+      {/* ১০. মোডাল: প্রোফাইল এডিটর                           */}
+      {/* ==================================================== */}
       {isProfileModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
           <div className="bg-white border border-brand-border rounded-3xl max-w-md w-full p-6 text-brand-text space-y-4 shadow-2xl relative">
@@ -1761,7 +1764,9 @@ export default function HomeExperience({
         </div>
       )}
 
-      {/* ১১. মোডাল: পেমেন্ট প্রুফ লাইটবক্স */}
+      {/* ==================================================== */}
+      {/* ১১. মোডাল: পেমেন্ট প্রুফ লাইটবক্স                   */}
+      {/* ==================================================== */}
       {viewingProof && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-xl p-4">
           <div className="bg-zinc-950 border border-zinc-800 rounded-3xl max-w-sm w-full p-5 text-white space-y-4 shadow-2xl relative text-center">
@@ -1787,7 +1792,9 @@ export default function HomeExperience({
         </div>
       )}
 
-      {/* ১২. মোডাল: ইউজার অথ (রেজিস্ট্রেশন ও লগইন) */}
+      {/* ==================================================== */}
+      {/* ১২. মোডাল: ইউজার অথ (রেজিস্ট্রেশন ও লগইন)            */}
+      {/* ==================================================== */}
       {isAuthModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
           <div className="bg-white border border-brand-border rounded-3xl max-w-sm w-full p-6 text-brand-text space-y-4 shadow-2xl relative">
@@ -1874,7 +1881,9 @@ export default function HomeExperience({
         </div>
       )}
 
-      {/* ১৩. মোডাল: স্পন্সরড ভোটিং অ্যাড-গেট */}
+      {/* ==================================================== */}
+      {/* ১৩. মোডাল: স্পন্সরড ভোটিং অ্যাড-গেট                   */}
+      {/* ==================================================== */}
       {votingPhoto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
           <div className="bg-white border border-brand-border rounded-3xl max-w-md w-full p-6 text-brand-text space-y-4 shadow-2xl relative text-center">
@@ -1899,15 +1908,8 @@ export default function HomeExperience({
               </p>
             </div>
 
-            <div
-              onClick={triggerAdsterraDirectLink}
-              className="h-44 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col items-center justify-center text-xs text-brand-muted font-bold space-y-1 cursor-pointer hover:border-brand-purple/40"
-            >
-              <div className="flex items-center gap-1 text-brand-purple text-[10px] uppercase font-bold">
-                <span>Adsterra Sponsored Offer</span>
-                <ExternalLink className="w-3 h-3" />
-              </div>
-              <span>[বিজ্ঞাপনে ক্লিক করে ক্রিয়েটরকে সাপোর্ট করুন • ৩০০x২৫০]</span>
+            <div className="my-2 flex justify-center">
+              <AdSlot zoneId="32346376" width={300} height={250} />
             </div>
 
             <div className="space-y-2">
@@ -1943,7 +1945,9 @@ export default function HomeExperience({
         </div>
       )}
 
-      {/* ১৪. মোডাল: ৪-লেয়ার ছবির কোয়ালিটি ও ডাউনলোড */}
+      {/* ==================================================== */}
+      {/* ১৪. মোডাল: ৪-লেয়ার ছবির কোয়ালিটি ও ডাউনলোড           */}
+      {/* ==================================================== */}
       {downloadPhoto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
           <div className="bg-white border border-brand-border rounded-3xl max-w-md w-full p-6 text-brand-text space-y-4 shadow-2xl">
@@ -2065,15 +2069,9 @@ export default function HomeExperience({
                 <span className="text-xs text-brand-purple font-bold">
                   {t.modals.download.stepVerification(toBengaliNumber(unlockStep), toBengaliNumber(selectedTier === "2K" ? 2 : 1))}
                 </span>
-                <div
-                  onClick={triggerAdsterraDirectLink}
-                  className="h-40 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col items-center justify-center text-xs text-brand-muted font-bold space-y-1 cursor-pointer hover:border-brand-purple/40"
-                >
-                  <div className="flex items-center gap-1 text-brand-purple text-[10px] uppercase font-bold">
-                    <span>Adsterra Sponsored Offer</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </div>
-                  <span>[স্পন্সর অফারে ক্লিক করে আনলক করুন • ৩০০x২৫০]</span>
+
+                <div className="my-2 flex justify-center">
+                  <AdSlot zoneId="32346376" width={300} height={250} />
                 </div>
 
                 {canDownload ? (
