@@ -465,27 +465,13 @@ export default function HomeExperience({
       <header className="bg-white border-b border-brand-border sticky top-0 z-40 shadow-sm">
         <div className="max-w-[1440px] mx-auto px-4 md:px-8 h-18 py-2.5 flex items-center justify-between gap-3">
           
-          <div className="flex items-center gap-3 shrink-0">
-            <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-gradient-to-tr from-brand-deep to-brand-purple text-white flex items-center justify-center font-black shadow-lg shadow-brand-purple/25 transition-transform group-hover:scale-105 overflow-hidden">
-                <img
-                  src="/logo.png"
-                  alt="PicEarnHub"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none";
-                  }}
-                  className="w-full h-full object-cover"
-                />
-                <Camera className="w-5 h-5 md:w-6 md:h-6 stroke-[2.5]" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-xl md:text-2xl font-black text-brand-text tracking-tight leading-none">
-                  PicEarn<span className="text-brand-purple">Hub</span>
-                </span>
-                <span className="text-[10px] text-brand-muted font-bold tracking-normal hidden sm:inline-block mt-0.5">
-                  {t.brand.tagline}
-                </span>
-              </div>
+          <div className="flex items-center shrink-0">
+            <Link href="/" className="flex items-center group py-1">
+              <img
+                src="/logo.png"
+                alt="PicEarnHub Logo"
+                className="h-10 sm:h-11 md:h-12 w-auto object-contain transition-transform group-hover:scale-105 duration-200"
+              />
             </Link>
           </div>
 
