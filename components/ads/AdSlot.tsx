@@ -1,11 +1,13 @@
 "use client";
 
 interface AdSlotProps {
+  zoneId?: string;
   width?: number;
   height?: number;
 }
 
 export default function AdSlot({
+  zoneId = "32346376",
   width = 300,
   height = 250,
 }: AdSlotProps) {
