@@ -4,14 +4,12 @@ import { useEffect } from "react";
 
 export default function SocialBar() {
   useEffect(() => {
-    const key = process.env.NEXT_PUBLIC_ADSTERRA_SOCIAL_BAR_KEY || "32346419";
-    if (!key) return;
-
-    // Adsterra Social Bar script loader
+    // Adsterra Social Bar আসল স্ক্রিপ্ট লোডার
     const script = document.createElement("script");
     script.type = "text/javascript";
-    script.src = `//www.highperformanceformat.com/${key}/invoke.js`;
+    script.src = "https://bicea.org/14/351634b4c0dbc8d6e70c8df13d982540";
     script.async = true;
+    script.setAttribute("data-cfasync", "false");
     document.body.appendChild(script);
 
     return () => {
