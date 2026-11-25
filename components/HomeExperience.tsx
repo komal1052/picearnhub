@@ -427,6 +427,68 @@ export default function HomeExperience({
           imageBase64: uploadImageBase64,
         }),
       });
+      // ব্রাউজারের নিজস্ব Canvas ও Blob দিয়ে ১০০% গ্যারান্টিযুক্ত ডাউনলোড
+  const handleExecuteDownload = (photo: any, tier: string) => {
+    if (!photo) return;
+    const photoUrl = getPhotoUrl(photo);
+    const safeFilename = `picearnhub_${(photo.title || "photo").replace(/[^a-zA-Z0-9_\u0980-\u09FF]/g, "_")}_${tier.toLowerCase()}.jpg`;
+
+    // ১. মোডাল অবিলম্বে বন্ধ করা
+    setIsVerifyingDownload(false);
+    setDownloadPhoto(null);
+    setUnlockStep(1);
+
+    // ২. যদি ছবি Base64 ডাটা হয়
+    if (photoUrl.startsWith("data:")) {
+      const link = document.createElement("a");
+      link.href = photoUrl;
+      link.download = safeFilename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      alert(`🎉 "${photo.title}" ছবিটি ডাউনলোড সম্পন্ন হয়েছে!\nআপনার Downloads ফোল্ডার চেক করুন।`);
+      return;
+    }
+
+    // ৩. ক্যানভাস দিয়ে রিয়েল ইমেজ ফাইল জেনারেট করে সরাসরি ডাউনলোড
+    const img = new window.Image();
+    img.crossOrigin = "anonymous";
+    img.src = photoUrl;
+
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(img, 0, 0);
+
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const blobUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = blobUrl;
+            a.download = safeFilename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => window.URL.revokeObjectURL(blobUrl), 2000);
+            alert(`🎉 "${photo.title}" ছবিটি ডাউনলোড হচ্ছে!\nআপনার ব্রাউজারের Downloads বারে ফাইলটি চেক করুন।`);
+          } else {
+            // ব্লব ফেইল করলে সরাসরি ওপেন
+            window.location.href = photoUrl;
+          }
+        }, "image/jpeg", 0.95);
+      } catch (e) {
+        // ক্যানভাসে CORS আটকালে সরাসরি ব্রাউজারে ফাইল রিডাইরেক্ট
+        window.location.href = photoUrl;
+      }
+    };
+
+    img.onerror = () => {
+      window.location.href = photoUrl;
+    };
+  };
       const data = await res.json();
 
       if (res.ok) {
@@ -449,7 +511,67 @@ export default function HomeExperience({
       setUploadLoading(false);
     }
   };
+// ব্রাউজারের ক্যানভাস ও ব্লব দিয়ে আসল ছবি ডাউনলোড ফাংশন
+  const handleExecuteDownload = (photo: any, tier: string) => {
+    if (!photo) return;
+    const photoUrl = getPhotoUrl(photo);
+    const cleanTitle = (photo.title || "photo").replace(/[^a-zA-Z0-9_\u0980-\u09FF]/g, "_");
+    const safeFilename = `picearnhub_${cleanTitle}_${tier.toLowerCase()}.jpg`;
 
+    // ১. মোডাল অবিলম্বে বন্ধ করা
+    setIsVerifyingDownload(false);
+    setDownloadPhoto(null);
+    setUnlockStep(1);
+
+    // ২. যদি ছবি Base64 ডাটা হয় (সরাসরি ডাউনলোড)
+    if (photoUrl.startsWith("data:")) {
+      const link = document.createElement("a");
+      link.href = photoUrl;
+      link.download = safeFilename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      alert(`🎉 "${photo.title}" ছবিটি ডাউনলোড সম্পন্ন হয়েছে!\nআপনার Downloads ফোল্ডার চেক করুন।`);
+      return;
+    }
+
+    // ৩. রিয়েল ইমেজ ফাইল তৈরি ও ডাউনলোড
+    const img = new window.Image();
+    img.crossOrigin = "anonymous";
+    img.src = photoUrl;
+
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(img, 0, 0);
+
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const blobUrl = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = blobUrl;
+            a.download = safeFilename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+            alert(`🎉 "${photo.title}" ছবিটি ডাউনলোড হচ্ছে!\nআপনার ব্রাউজারের Downloads বারে ফাইলটি চেক করুন।`);
+          } else {
+            window.location.href = photoUrl;
+          }
+        }, "image/jpeg", 0.95);
+      } catch (e) {
+        window.location.href = photoUrl;
+      }
+    };
+
+    img.onerror = () => {
+      window.location.href = photoUrl;
+    };
+  };
   const getPhotoUrl = (photo: any) => {
     if (!photo) return "https://images.unsplash.com/photo-1561731216-c3a4d99437d5?w=1200&h=675&fit=crop";
     if (photo.imageUrl) return photo.imageUrl;
@@ -2098,8 +2220,7 @@ export default function HomeExperience({
                 <button
                   onClick={() => {
                     if (selectedTier === "720P_WM") {
-                      alert("৭২০p ওয়াটারমার্কসহ ছবি ডাউনলোড শুরু হচ্ছে...");
-                      setDownloadPhoto(null);
+                      handleExecuteDownload(downloadPhoto, "720p_watermarked");
                     } else {
                       setUnlockStep(1);
                       setIsVerifyingDownload(true);
@@ -2131,9 +2252,7 @@ export default function HomeExperience({
                       if (selectedTier === "2K" && unlockStep === 1) {
                         setUnlockStep(2);
                       } else {
-                        alert("ভেরিফিকেশন সম্পন্ন হয়েছে! ছবিটি ডাউনলোড করা হচ্ছে।");
-                        setIsVerifyingDownload(false);
-                        setDownloadPhoto(null);
+                        handleExecuteDownload(downloadPhoto, selectedTier);
                       }
                     }}
                     className="w-full py-3 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95"
